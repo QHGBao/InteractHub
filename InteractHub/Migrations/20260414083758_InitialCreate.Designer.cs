@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InteractHub.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260413090757_InitialCreate")]
+    [Migration("20260414083758_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

@@ -3637,19 +3637,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Quach\\.nuget\\packages\\": {}
+    "C:\\Users\\Admin\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Code\\InteractHub\\InteractHub\\InteractHub.csproj",
+      "projectUniqueName": "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\InteractHub.csproj",
       "projectName": "InteractHub",
-      "projectPath": "D:\\Code\\InteractHub\\InteractHub\\InteractHub.csproj",
-      "packagesPath": "C:\\Users\\Quach\\.nuget\\packages\\",
-      "outputPath": "D:\\Code\\InteractHub\\InteractHub\\obj\\",
+      "projectPath": "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\InteractHub.csproj",
+      "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
+      "outputPath": "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Quach\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
@@ -3673,7 +3673,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.200"
+      "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
       "net10.0": {
@@ -3731,7 +3731,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
