@@ -1,76 +1,263 @@
-import { useForm } from 'react-hook-form';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-const RegisterPage = () => {
-  const { register: registerUser } = useAuth();
+export default function RegisterPage() {
+
+  const { register } = useAuth();
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError, watch } = useForm();
-  const password = watch('password');
 
-  const onSubmit = async (data) => {
-    try {
-      await registerUser(data);
-      navigate('/');
-    } catch (error) {
-      setError('root', { message: error.response?.data?.message || 'Đăng ký thất bại' });
-    }
+  const [step, setStep] = useState(1);
+
+  const [form, setForm] = useState({
+    displayName: "",
+    email: "",
+    userName: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const pwStrength = (pw) => {
+    let s = 0;
+    if(pw.length>=8)s++;
+    if(/[A-Z]/.test(pw))s++;
+    if(/[0-9]/.test(pw))s++;
+    if(/[^A-Za-z0-9]/.test(pw))s++;
+    return s;
   };
 
+  const strength = pwStrength(form.password);
+  const strengthLabel = ['','Yếu','Trung bình','Khá','Mạnh'][strength];
+  const strengthColor = ['','var(--danger)','var(--warning)','#60a5fa','var(--accent3)'][strength];
+
+  function validate1() {
+    const e = {};
+
+    if(!form.displayName.trim())
+      e.displayName='Vui lòng nhập họ tên';
+
+    if(!form.email.match(/^[^@]+@[^@]+\.[^@]+$/))
+      e.email='Email không hợp lệ';
+
+    if(!form.userName.trim())
+      e.userName='Vui lòng nhập username';
+
+    setErrors(e);
+    return Object.keys(e).length===0;
+  }
+
+  function validate2() {
+
+    const e = {};
+
+    if(strength<2)
+      e.password='Mật khẩu quá yếu';
+
+    if(form.password!==form.confirmPassword)
+      e.confirmPassword='Mật khẩu không khớp';
+
+    setErrors(e);
+
+    return Object.keys(e).length===0;
+  }
+
+  async function handleSubmit() {
+
+    if(!validate2()) return;
+
+    setLoading(true);
+
+    try{
+
+      await register({
+        displayName: form.displayName,
+        email: form.email,
+        userName: form.userName,
+        password: form.password
+      });
+
+      navigate("/");
+
+    }catch(err){
+
+      setErrors({
+        api: err.response?.data?.message || "Đăng ký thất bại"
+      });
+
+    }
+
+    setLoading(false);
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">Đăng ký</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tên hiển thị</label>
-            <input {...register('displayName', { required: 'Bắt buộc' })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nguyễn Văn A" />
-            {errors.displayName && <p className="text-red-500 text-sm mt-1">{errors.displayName.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
-            <input {...register('userName', { required: 'Bắt buộc', minLength: { value: 3, message: 'Tối thiểu 3 ký tự' } })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="username123" />
-            {errors.userName && <p className="text-red-500 text-sm mt-1">{errors.userName.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input {...register('email', { required: 'Bắt buộc', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Email không hợp lệ' } })}
-              type="email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="email@example.com" />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-            <input {...register('password', { required: 'Bắt buộc', minLength: { value: 6, message: 'Tối thiểu 6 ký tự' } })}
-              type="password"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••" />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
-            <input {...register('confirmPassword', { required: 'Bắt buộc', validate: v => v === password || 'Mật khẩu không khớp' })}
-              type="password"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••" />
-            {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
-          </div>
-          {errors.root && <p className="text-red-500 text-sm text-center">{errors.root.message}</p>}
-          <button type="submit" disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
-            {isSubmitting ? 'Đang đăng ký...' : 'Đăng ký'}
-          </button>
-        </form>
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Đã có tài khoản? <Link to="/login" className="text-blue-600 hover:underline">Đăng nhập</Link>
-        </p>
+    <div className="auth-page">
+
+      <div className="auth-card" style={{maxWidth:460}}>
+
+        <div className="auth-logo">InteractHub</div>
+
+        <div className="auth-subtitle">
+          Tạo tài khoản mới — Bước {step}/2
+        </div>
+
+        {/* Progress bar */}
+        <div style={{display:'flex',gap:8,marginBottom:24}}>
+          {[1,2].map(i=>(
+            <div
+              key={i}
+              style={{
+                flex:1,
+                height:3,
+                borderRadius:2,
+                background:i<=step?'var(--accent)':'var(--bg4)',
+                transition:'background .3s'
+              }}
+            />
+          ))}
+        </div>
+
+        {step===1 && (
+          <>
+            {[['displayName','Họ và tên','Nguyễn Văn A'],
+              ['email','Email','you@example.com'],
+              ['userName','Username','nguyenvana']
+            ].map(([k,l,ph])=>(
+
+              <div key={k} className="input-group" style={{marginBottom:14}}>
+
+                <label className="input-label">{l}</label>
+
+                <input
+                  className="input"
+                  placeholder={ph}
+                  value={form[k]}
+                  onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
+                  style={{borderColor:errors[k]?'var(--danger)':undefined}}
+                />
+
+                {errors[k] &&
+                  <span style={{fontSize:11,color:'var(--danger)'}}>
+                    {errors[k]}
+                  </span>
+                }
+
+              </div>
+            ))}
+
+            <button
+              className="btn btn-primary"
+              style={{width:'100%',justifyContent:'center',padding:12}}
+              onClick={()=>validate1()&&setStep(2)}
+            >
+              Tiếp theo →
+            </button>
+
+          </>
+        )}
+
+        {step===2 && (
+          <>
+
+            <div className="input-group" style={{marginBottom:14}}>
+
+              <label className="input-label">Mật khẩu</label>
+
+              <input
+                className="input"
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={e=>setForm(p=>({...p,password:e.target.value}))}
+                style={{borderColor:errors.password?'var(--danger)':undefined}}
+              />
+
+              {form.password && (
+                <div style={{marginTop:6}}>
+
+                  <div style={{display:'flex',gap:4,marginBottom:4}}>
+                    {[1,2,3,4].map(i=>(
+                      <div
+                        key={i}
+                        style={{
+                          flex:1,
+                          height:3,
+                          borderRadius:2,
+                          background:i<=strength?strengthColor:'var(--bg4)',
+                          transition:'background .3s'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <span style={{fontSize:11,color:strengthColor}}>
+                    {strengthLabel}
+                  </span>
+
+                </div>
+              )}
+
+              {errors.password &&
+                <span style={{fontSize:11,color:'var(--danger)'}}>
+                  {errors.password}
+                </span>
+              }
+
+            </div>
+
+            <div className="input-group" style={{marginBottom:24}}>
+
+              <label className="input-label">Xác nhận mật khẩu</label>
+
+              <input
+                className="input"
+                type="password"
+                placeholder="••••••••"
+                value={form.confirmPassword}
+                onChange={e=>setForm(p=>({...p,confirmPassword:e.target.value}))}
+                style={{borderColor:errors.confirmPassword?'var(--danger)':undefined}}
+              />
+
+              {errors.confirmPassword &&
+                <span style={{fontSize:11,color:'var(--danger)'}}>
+                  {errors.confirmPassword}
+                </span>
+              }
+
+            </div>
+
+            {errors.api && (
+              <div style={{color:'var(--danger)',marginBottom:12}}>
+                {errors.api}
+              </div>
+            )}
+
+            <div style={{display:'flex',gap:10}}>
+
+              <button
+                className="btn btn-ghost"
+                onClick={()=>setStep(1)}
+              >
+                ← Quay lại
+              </button>
+
+              <button
+                className="btn btn-primary"
+                style={{flex:1,justifyContent:'center'}}
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading?'⏳ Đang tạo...':'🚀 Tạo tài khoản'}
+              </button>
+
+            </div>
+
+          </>
+        )}
+
       </div>
     </div>
   );
-};
-export default RegisterPage;
+}

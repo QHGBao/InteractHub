@@ -1,13 +1,37 @@
-const Avatar = ({ src, name, size = 'md' }) => {
-  const sizeMap = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-16 h-16 text-xl' };
-  const initials = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+const AvatarColors = [
+  '#7c6af7','#4ade80','#f87171',
+  '#fbbf24','#60a5fa','#f472b6','#34d399'
+];
 
-  if (src) return <img src={src} alt={name} className={`${sizeMap[size]} rounded-full object-cover`} />;
+function Avatar({ user, size='md' }) {
+  if (!user) return null;
+
+  const cls =
+    size === 'sm' ? 'ava ava-sm' :
+    size === 'lg' ? 'ava ava-lg' :
+    size === 'xl' ? 'ava ava-xl' :
+    'ava';
+
+  const name = (user.name || '?').trim();
+
+  const color =
+    AvatarColors[
+      name.charCodeAt(0) % AvatarColors.length
+    ];
+
+  const text = name.slice(0,2).toUpperCase();
 
   return (
-    <div className={`${sizeMap[size]} rounded-full bg-blue-500 flex items-center justify-center text-white font-medium`}>
-      {initials}
+    <div
+      className={cls}
+      style={{
+        background: color + '22',
+        border: `1.5px solid ${color}44`,
+        color
+      }}
+    >
+      {text}
     </div>
   );
-};
+}
 export default Avatar;

@@ -1,51 +1,208 @@
-import { useForm } from 'react-hook-form';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import Icon from "../components/Shared/Icon";
 
-const LoginPage = () => {
+export default function LoginPage() {
+
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm();
 
-  const onSubmit = async (data) => {
-    try {
-      await login(data);
-      navigate('/');
-    } catch (error) {
-      setError('root', { message: error.response?.data?.message || 'Đăng nhập thất bại' });
+  const [form,setForm] = useState({
+    email:"",
+    password:""
+  });
+
+  const [error,setError] = useState("");
+  const [loading,setLoading] = useState(false);
+  const [showPw,setShowPw] = useState(false);
+
+  async function handleSubmit(){
+
+    if(!form.email || !form.password){
+      setError("Vui lòng nhập đầy đủ thông tin");
+      return;
     }
-  };
+
+    setLoading(true);
+    setError("");
+
+    try{
+
+      await login(form);
+      navigate("/");
+
+    }catch(err){
+
+      setError(
+        err.response?.data?.message ||
+        "Email hoặc mật khẩu không đúng"
+      );
+
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">Đăng nhập</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input {...register('email', { required: 'Email là bắt buộc' })}
-              type="email" placeholder="email@example.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+    <div className="auth-page">
+
+      <div className="auth-card">
+
+        <div className="auth-logo">InteractHub</div>
+
+        <div className="auth-subtitle">
+          Chào mừng trở lại! Đăng nhập để tiếp tục.
+        </div>
+
+        {error && (
+          <div style={{
+            background:'rgba(248,113,113,.1)',
+            border:'1px solid rgba(248,113,113,.3)',
+            borderRadius:10,
+            padding:'10px 14px',
+            fontSize:13,
+            color:'var(--danger)',
+            marginBottom:16
+          }}>
+            ⚠️ {error}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-            <input {...register('password', { required: 'Mật khẩu là bắt buộc' })}
-              type="password" placeholder="••••••"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+        )}
+
+        {/* EMAIL */}
+        <div className="input-group" style={{marginBottom:14}}>
+
+          <label className="input-label">
+            <Icon name="mail" size={12}/> Email
+          </label>
+
+          <input
+            className="input"
+            type="email"
+            placeholder="you@interacthub.io"
+            value={form.email}
+            onChange={e=>setForm(p=>({...p,email:e.target.value}))}
+            onKeyDown={e=>e.key==="Enter" && handleSubmit()}
+          />
+
+        </div>
+
+        {/* PASSWORD */}
+        <div className="input-group" style={{marginBottom:24}}>
+
+          <label className="input-label">
+            <Icon name="lock" size={12}/> Mật khẩu
+          </label>
+
+          <div style={{position:'relative'}}>
+
+            <input
+              className="input"
+              type={showPw ? "text":"password"}
+              placeholder="••••••••"
+              value={form.password}
+              onChange={e=>setForm(p=>({...p,password:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter" && handleSubmit()}
+              style={{paddingRight:40}}
+            />
+
+            <button
+              onClick={()=>setShowPw(p=>!p)}
+              type="button"
+              style={{
+                position:'absolute',
+                right:12,
+                top:'50%',
+                transform:'translateY(-50%)',
+                color:'var(--text3)',
+                background:'none',
+                border:'none'
+              }}
+            >
+              <Icon name="eye" size={16}/>
+            </button>
+
           </div>
-          {errors.root && <p className="text-red-500 text-sm text-center">{errors.root.message}</p>}
-          <button type="submit" disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
-            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </button>
-        </form>
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Chưa có tài khoản? <Link to="/register" className="text-blue-600 hover:underline">Đăng ký</Link>
-        </p>
+
+          <div style={{textAlign:'right',marginTop:4}}>
+            <span
+              style={{
+                fontSize:12,
+                color:'var(--accent2)',
+                cursor:'pointer'
+              }}
+            >
+              Quên mật khẩu?
+            </span>
+          </div>
+
+        </div>
+
+        {/* LOGIN BUTTON */}
+        <button
+          className="btn btn-primary"
+          style={{width:'100%',justifyContent:'center',padding:'12px'}}
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+        </button>
+
+        {/* DIVIDER */}
+        <div style={{textAlign:'center',margin:'16px 0',position:'relative'}}>
+          <div style={{
+            height:1,
+            background:'var(--border)',
+            position:'absolute',
+            top:'50%',
+            left:0,
+            right:0
+          }}/>
+
+          <span style={{
+            background:'var(--bg2)',
+            padding:'0 12px',
+            fontSize:12,
+            color:'var(--text3)',
+            position:'relative'
+          }}>
+            hoặc
+          </span>
+        </div>
+
+        {/* REGISTER */}
+        <div className="auth-footer">
+          Chưa có tài khoản?
+
+          <span
+            className="auth-link"
+            onClick={()=>navigate("/register")}
+          >
+            Đăng ký ngay
+          </span>
+
+        </div>
+
+        {/* DEMO */}
+        <div style={{
+          marginTop:16,
+          padding:12,
+          background:'var(--bg3)',
+          borderRadius:10,
+          fontSize:12,
+          color:'var(--text3)'
+        }}>
+          💡 Demo:
+          <strong style={{color:'var(--text2)'}}>
+            admin@interacthub.io
+          </strong>
+          /
+          <strong style={{color:'var(--text2)'}}>
+            admin123
+          </strong>
+        </div>
+
       </div>
+
     </div>
   );
-};
-export default LoginPage;
+}
