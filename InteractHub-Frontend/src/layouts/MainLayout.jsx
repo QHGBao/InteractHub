@@ -93,7 +93,7 @@ const MainLayout = () => {
           <span className="topbar-title">{title}</span>
 
           <div className="search-wrap" ref={searchRef}>
-            <Icon name="search" size={15} />
+            <Icon name="search" size={15} className="search-icon" />
             <input
               placeholder="Tìm kiếm người dùng..."
               value={searchVal}

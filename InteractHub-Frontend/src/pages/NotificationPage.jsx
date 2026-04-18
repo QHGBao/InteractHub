@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
-import { getNotifications, markAllNotificationsRead } from "../services/notificationService";
+import { getNotifications, markAllAsRead } from "../services/notificationService";
 
 export default function NotificationsPage() {
 
@@ -15,7 +15,7 @@ export default function NotificationsPage() {
   async function loadNotifications() {
     try {
       const res = await getNotifications();
-      setNotifs(res.data);
+      setNotifs(res.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -25,7 +25,7 @@ export default function NotificationsPage() {
 
   async function markAllRead() {
     try {
-      await markAllNotificationsRead();
+      await markAllAsRead();
       setNotifs((n) =>
         n.map((x) => ({ ...x, isRead: true }))
       );

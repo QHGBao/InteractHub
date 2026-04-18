@@ -11,15 +11,20 @@ function Avatar({ user, size='md' }) {
     size === 'lg' ? 'ava ava-lg' :
     size === 'xl' ? 'ava ava-xl' :
     'ava';
-
-  const name = (user.name || '?').trim();
+  console.log("Avatar user:", user);
+  const name = (user.displayName || '?').trim();
 
   const color =
     AvatarColors[
       name.charCodeAt(0) % AvatarColors.length
     ];
 
-  const text = name.slice(0,2).toUpperCase();
+  const text = name
+  .split(' ')
+  .map(w => w[0])
+  .slice(0,2)
+  .join('')
+  .toUpperCase();
 
   return (
     <div

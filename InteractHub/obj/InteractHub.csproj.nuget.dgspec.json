@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\InteractHub.csproj": {}
+    "C:\\Users\\Admin\\Desktop\\Csharp\\InteractHub\\InteractHub\\InteractHub.csproj": {}
   },
   "projects": {
-    "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\InteractHub.csproj": {
+    "C:\\Users\\Admin\\Desktop\\Csharp\\InteractHub\\InteractHub\\InteractHub.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\InteractHub.csproj",
+        "projectUniqueName": "C:\\Users\\Admin\\Desktop\\Csharp\\InteractHub\\InteractHub\\InteractHub.csproj",
         "projectName": "InteractHub",
-        "projectPath": "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\InteractHub.csproj",
+        "projectPath": "C:\\Users\\Admin\\Desktop\\Csharp\\InteractHub\\InteractHub\\InteractHub.csproj",
         "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
-        "outputPath": "D:\\HKII_2025-2026\\C_Sharp\\InteractHub\\InteractHub\\obj\\",
+        "outputPath": "C:\\Users\\Admin\\Desktop\\Csharp\\InteractHub\\InteractHub\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -96,7 +96,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

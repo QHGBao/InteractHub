@@ -1,9 +1,22 @@
-import api from "./api";
+// src/services/adminService.js
+import axios from "axios";
 
-export const getUsers = () => api.get("/users");
+export const getUsers = async () => {
+  const res = await axios.get("/api/users");
+  return res.data;
+};
 
-export const getPosts = () => api.get("/posts");
+export const getPosts = async () => {
+  const res = await axios.get("/api/posts");
+  return res.data;
+};
 
-export const banUser = (id) => api.post(`/users/${id}/ban`);
+export const banUser = async (id) => {
+  const res = await axios.post(`/api/users/${id}/ban`);
+  return res.data;
+};
 
-export const deletePost = (id) => api.delete(`/posts/${id}`);
+export const deletePost = async (id) => {
+  const res = await axios.delete(`/api/posts/${id}`);
+  return res.data;
+};
