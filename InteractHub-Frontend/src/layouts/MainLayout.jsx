@@ -93,7 +93,9 @@ const MainLayout = () => {
           <span className="topbar-title">{title}</span>
 
           <div className="search-wrap" ref={searchRef}>
-            <Icon name="search" size={15} className="search-icon" />
+            <div className="search-icon">
+              <Icon name="search" size={15} />
+            </div>
             <input
               placeholder="Tìm kiếm người dùng..."
               value={searchVal}
