@@ -11,6 +11,11 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const HomePage     = lazy(() => import('./pages/HomePage'));
 const ProfilePage  = lazy(() => import('./pages/ProfilePage'));
 const SearchPage   = lazy(() => import('./pages/SearchPage'));
+const StoriesPage  = lazy(() => import('./pages/StoriesPage'));
+const FriendPage   = lazy(() => import('./pages/FriendPage'));
+const NotificationPage   = lazy(() => import('./pages/NotificationPage'));
+const SettingPage  = lazy(() => import('./pages/SettingPage'));
+const AdminPage    = lazy(() => import('./pages/AdminPage'))
 
 const App = () => (
   <BrowserRouter>
@@ -24,6 +29,10 @@ const App = () => (
               <Route path="/"                element={<HomePage />} />
               <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/search"          element={<SearchPage />} />
+              <Route path="/stories"          element={<StoriesPage />} />
+              <Route path="/friends"         element={<FriendPage/>} />
+              <Route path="/notifications"         element={<NotificationPage/>} />
+              <Route path="/settings"         element={<SettingPage/>} />
             </Route>
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

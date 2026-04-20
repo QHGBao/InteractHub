@@ -97,7 +97,7 @@ const MainLayout = () => {
               <Icon name="search" size={15} />
             </div>
             <input
-              placeholder="Tìm kiếm người dùng..."
+              placeholder="Tìm kiếm ..."
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
               onKeyDown={e => {

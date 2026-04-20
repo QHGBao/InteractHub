@@ -17,6 +17,7 @@ const Navbar = () => {
           <Link to="/" className="hover:text-blue-600">Trang chủ</Link>
           <Link to="/search" className="hover:text-blue-600">Tìm kiếm</Link>
           <Link to="/friends" className="hover:text-blue-600">Bạn bè</Link>
+          <Link to="/stories" className="hover:text-blue-600">Stories</Link>
         </div>
 
         {user && (
@@ -44,6 +45,9 @@ const Navbar = () => {
         </Link>
         <Link to={`/profile/${user?.userId}`} className="flex flex-col items-center text-xs text-gray-600">
           <span>👤</span><span>Hồ sơ</span>
+        </Link>
+        <Link to="/stories" className="flex flex-col items-center text-xs text-gray-600">
+          <span>📖</span><span>Stories</span>
         </Link>
       </div>
     </nav>
