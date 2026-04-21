@@ -2,12 +2,10 @@ version=1
 
 # This file caches language service data to improve the performance of C# Dev Kit.
 # It is not intended for manual editing. It can safely be deleted and will be
-# regenerated automatically.
+# regenerated automatically. For more information, see https://aka.ms/lscache
 #
-# To exclude from version control, add *.lscache to your .gitignore file.
-#
-# To disable caching, add the following to your VS Code settings:
-#   "dotnet.projectsystem.enableLanguageServiceCache": false
+# To control where cache files are stored, use the following VS Code setting:
+#   "dotnet.projectsystem.cacheInProjectFolder": true
 
 [project]
 language=C#
@@ -57,15 +55,18 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 /warnaserror+:NU1605,SYSLIB0011
 
 [sourceFiles]
-Controllers/AuthController.cs
+Controllers/
+ AuthController.cs
+ StoryController.cs
 Data/AppDbContext.cs
 DTOs/Auth/
  AuthResponseDto.cs
  LoginDto.cs
  RegisterDto.cs
+DTOs/Story/CreateStoryDto.cs
 Migrations/
- 20260414083758_InitialCreate.cs
- 20260414083758_InitialCreate.Designer.cs
+ 20260420145707_InitialCreate.cs
+ 20260420145707_InitialCreate.Designer.cs
  AppDbContextModelSnapshot.cs
 Model/
  ApplicationUser.cs
@@ -87,6 +88,8 @@ Program.cs
 Service/
  AuthService.cs
  IAuthService.cs
+ IStoryService.cs
+ StoryService.cs
 
 [metadataReferences]
 <DOTNET>/packs/Microsoft.AspNetCore.App.Ref/10.0.5/ref/net10.0/

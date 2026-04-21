@@ -28,8 +28,8 @@ export default function SearchPage() {
         searchPosts(q),
       ]);
 
-      console.log("users:", usersRes);
-      console.log("posts:", postsRes);
+      // console.log("users:", usersRes);
+      // console.log("posts:", postsRes);
 
       setResults({
         users: usersRes.data || [],

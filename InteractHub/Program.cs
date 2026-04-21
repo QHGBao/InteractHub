@@ -25,6 +25,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 
 // ── Đăng ký Services ────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<StoryService>(); // ✅ thêm StoryService
 
 // ── JWT Authentication ──────────────────────────────────────────
 builder.Services.AddAuthentication(options =>
@@ -65,6 +66,7 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseStaticFiles();
 app.UseCors("ReactApp");
 app.UseAuthentication();
 app.UseAuthorization();

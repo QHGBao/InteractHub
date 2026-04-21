@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { authApi } from '../api/authApi';
+import { createContext, useContext, useEffect, useState } from "react";
+import { authApi } from "../api/authApi";
 
 const AuthContext = createContext(null);
 
@@ -9,52 +9,67 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+    try {
+      const savedToken = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+
+      if (savedToken) setToken(savedToken);
+
+      if (savedUser && savedUser !== "undefined") {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (err) {
+      console.warn("Auth parse error → cleared storage");
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const saveAuth = (data) => {
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data));
-    setToken(data.token);
-    setUser(data);
+    if (!data) return;
+
+    localStorage.setItem("token", data.token || "");
+    localStorage.setItem("user", JSON.stringify(data.user || null));
+
+    setToken(data.token || null);
+    setUser(data.user || null);
   };
 
   const login = async (data) => {
-    const result = await authApi.login(data);
-    saveAuth(result);
+    const res = await authApi.login(data);
+    saveAuth(res);
+    return res;
   };
 
   const register = async (data) => {
-    const result = await authApi.register(data);
-    saveAuth(result);
+    const res = await authApi.register(data);
+    saveAuth(res);
+    return res;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.clear();
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{
-      user, token, isLoading,
-      login, register, logout,
-      isAuthenticated: !!token
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!token,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth phải dùng trong AuthProvider');
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

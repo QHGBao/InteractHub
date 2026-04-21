@@ -11,7 +11,6 @@ function Avatar({ user, size='md' }) {
     size === 'lg' ? 'ava ava-lg' :
     size === 'xl' ? 'ava ava-xl' :
     'ava';
-  console.log("Avatar user:", user);
   const name = (user.displayName || '?').trim();
 
   const color =
