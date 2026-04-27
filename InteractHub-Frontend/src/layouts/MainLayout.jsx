@@ -18,14 +18,13 @@ const PAGE_TITLES = {
 
 const MainLayout = () => {
   const { user, logout } = useAuth();
-  const { toast } = useApp();
+  const { toast, toasts } = useApp(); // 👈 thêm toasts
   const navigate = useNavigate();
   const location = useLocation();
   const [searchVal, setSearchVal] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const searchRef = useRef(null);
 
-  // Lấy page id từ pathname để truyền vào Sidebar
   const pathToPage = {
     '/':              'home',
     '/friends':       'friends',
@@ -34,6 +33,7 @@ const MainLayout = () => {
     '/settings':      'settings',
     '/search':        'search',
   };
+
   const currentPage = location.pathname.startsWith('/profile')
     ? 'profile'
     : (pathToPage[location.pathname] || 'home');
@@ -64,7 +64,6 @@ const MainLayout = () => {
 
   return (
     <div className="app">
-      {/* Overlay cho mobile sidebar */}
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -82,7 +81,6 @@ const MainLayout = () => {
 
       <div className="main">
         <div className="topbar">
-          {/* Hamburger cho mobile */}
           <button
             className="btn btn-ghost btn-sm sidebar-toggle"
             onClick={() => setSidebarOpen(p => !p)}
@@ -129,8 +127,7 @@ const MainLayout = () => {
           <Outlet />
         </div>
       </div>
-
-      <Toasts toasts={[]} />
+      <Toasts toasts={toasts} />
     </div>
   );
 };

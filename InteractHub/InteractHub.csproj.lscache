@@ -57,13 +57,16 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 [sourceFiles]
 Controllers/
  AuthController.cs
+ SearchController.cs
  StoryController.cs
 Data/AppDbContext.cs
 DTOs/Auth/
  AuthResponseDto.cs
  LoginDto.cs
  RegisterDto.cs
-DTOs/Story/CreateStoryDto.cs
+DTOs/
+ Search/SearchResultDto.cs
+ Story/CreateStoryDto.cs
 Migrations/
  20260420145707_InitialCreate.cs
  20260420145707_InitialCreate.Designer.cs
@@ -88,7 +91,9 @@ Program.cs
 Service/
  AuthService.cs
  IAuthService.cs
+ ISearchService.cs
  IStoryService.cs
+ SearchService.cs
  StoryService.cs
 
 [metadataReferences]

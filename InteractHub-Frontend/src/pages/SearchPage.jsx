@@ -10,11 +10,11 @@ export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
 
-  const [activeTab, setActiveTab] = useState("users"); // "users" | "posts"
+  const [activeTab, setActiveTab] = useState("users");
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
 
-  // Mỗi khi query trên URL thay đổi → fetch lại, giống StoriesPage dùng useEffect
+  // Mỗi khi query URL thay đổi → fetch lại
   useEffect(() => {
     if (!query.trim()) return;
     loadResults(query.trim());
@@ -23,17 +23,15 @@ export default function SearchPage() {
   async function loadResults(q) {
     setLoading(true);
     try {
-      const [usersRes, postsRes] = await Promise.all([
+      // searchUsers/searchPosts đã return thẳng array (res.data.data)
+      const [users, posts] = await Promise.all([
         searchUsers(q),
         searchPosts(q),
       ]);
 
-      // console.log("users:", usersRes);
-      // console.log("posts:", postsRes);
-
       setResults({
-        users: usersRes.data || [],
-        posts: postsRes.data || [],
+        users: users || [],
+        posts: posts || [],
       });
     } catch (err) {
       console.error(err);
@@ -45,7 +43,7 @@ export default function SearchPage() {
 
   const currentResults = results[activeTab];
 
-  // Chưa có query (user vào /search không có ?q=)
+  // Chưa có query
   if (!query.trim()) {
     return (
       <div className="page">
@@ -84,7 +82,7 @@ export default function SearchPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {[
           { key: "users", label: "Người dùng", count: results.users.length },
-          { key: "posts", label: "Bài viết", count: results.posts.length },
+          { key: "posts", label: "Bài viết",   count: results.posts.length },
         ].map(tab => (
           <button
             key={tab.key}
@@ -95,7 +93,7 @@ export default function SearchPage() {
             <span style={{
               marginLeft: 6,
               background: activeTab === tab.key ? "rgba(255,255,255,.25)" : "var(--bg2)",
-              borderRadius: 10, padding: "1px 7px", fontSize: 11
+              borderRadius: 10, padding: "1px 7px", fontSize: 11,
             }}>
               {tab.count}
             </span>
@@ -120,20 +118,20 @@ export default function SearchPage() {
               key={user.id || i}
               className="card"
               style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", cursor: "pointer" }}
-              onClick={() => app.navigate?.(`/profile/${user.id || user.username}`)}
+              onClick={() => app.navigate?.(`/profile/${user.id}`)}
             >
               <Avatar user={user} size="md" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>
-                  {user.displayName || user.name}
+                  {user.displayName}
                 </div>
-                {user.username && (
-                  <div style={{ fontSize: 12, color: "var(--text3)" }}>@{user.username}</div>
+                {user.userName && (
+                  <div style={{ fontSize: 12, color: "var(--text3)" }}>@{user.userName}</div>
                 )}
                 {user.bio && (
                   <div style={{
                     fontSize: 12, color: "var(--text2)", marginTop: 2,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {user.bio}
                   </div>
@@ -159,7 +157,7 @@ export default function SearchPage() {
                 <Avatar user={post.user} size="sm" />
                 <div>
                   <span style={{ fontWeight: 600, fontSize: 13 }}>
-                    {post.user?.displayName || post.user?.name}
+                    {post.user?.displayName}
                   </span>
                   <span style={{ fontSize: 11, color: "var(--text3)", marginLeft: 8 }}>
                     {post.timeAgo}
@@ -169,13 +167,14 @@ export default function SearchPage() {
               <div style={{
                 fontSize: 13, color: "var(--text2)", lineHeight: 1.6,
                 display: "-webkit-box", WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical", overflow: "hidden"
+                WebkitBoxOrient: "vertical", overflow: "hidden",
               }}>
-                {post.content || post.text}
+                {post.content}
               </div>
-              {post.image && (
+              {post.imageUrl && (
                 <div style={{ marginTop: 10, height: 120, borderRadius: 8, overflow: "hidden" }}>
-                  <img src={post.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={post.imageUrl} alt=""
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
               )}
               <div style={{ display: "flex", gap: 16, marginTop: 10 }}>

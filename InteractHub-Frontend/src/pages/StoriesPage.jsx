@@ -42,7 +42,7 @@ function ConfirmDeleteModal({ onConfirm, onCancel, loading }) {
             alignItems: "center", justifyContent: "center",
             margin: "0 auto 16px",
           }}>
-            <Icon name="trash-2" size={24} style={{ color: "#dc2626" }} />
+            <Icon name="trash" size={24} style={{ color: "#dc2626" }} />
           </div>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 8px" }}>
             Xoá story này?
