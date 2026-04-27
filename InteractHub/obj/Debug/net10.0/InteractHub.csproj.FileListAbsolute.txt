@@ -653,3 +653,4 @@ D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\refint\InteractH
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\InteractHub.pdb
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\InteractHub.genruntimeconfig.cache
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\ref\InteractHub.dll
+C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.staticwebassets.runtime.json

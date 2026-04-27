@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-namespace InteractHub.DTOs;
+namespace InteractHub.DTOs.Post;
 public record CreateCommentDto
 {
     [Required]

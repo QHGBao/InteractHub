@@ -51,14 +51,14 @@ export default function HomePage() {
     }
   }
 
-  async function handlePost(text) {
+  async function handlePost(text, imageUrl = null) {
     try {
       const newPost = await createPost({
         content: text,
-        imageUrl: null,
+        imageUrl: imageUrl, // ← Thêm imageUrl
       });
-      // Thêm post mới vào đầu danh sách
-      setPosts(p => [newPost, ...p]);
+      
+      setPosts((p) => [newPost, ...p]);
       toast("Đã đăng bài viết!", "success");
     } catch (err) {
       console.error(err);
