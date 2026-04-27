@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import StoryBar from "../components/Shared/StoryBar";
@@ -20,22 +20,34 @@ export default function HomePage() {
   const [suggestions, setSuggestions] = useState([]);
   const [storyViewer, setStoryViewer] = useState(null);
 
+  // Thêm pagination state
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [page]);
 
   async function loadData() {
     try {
+      setLoading(true);
       const [postsData, trendingData, suggestionData] = await Promise.all([
         getPosts(),
         getTrending(),
         getSuggestions(),
       ]);
-      setPosts(postsData.data || []);
+      // Backend trả về: { posts, totalCount, page, pageSize, totalPages }
+      setPosts(postsData.posts || []);
+      setTotalPage(postsData.totalPages || 1);
+
       setTrending(trendingData.data || []);
       setSuggestions(suggestionData.data || []);
     } catch (err) {
+      console.error(err);
       toast("Không tải được dữ liệu", "error");
+    } finally{
+      setLoading(false);
     }
   }
 
@@ -43,13 +55,22 @@ export default function HomePage() {
     try {
       const newPost = await createPost({
         content: text,
-        userId: currentUser?.userId,
+        imageUrl: null,
       });
+      // Thêm post mới vào đầu danh sách
       setPosts(p => [newPost, ...p]);
       toast("Đã đăng bài viết!", "success");
     } catch (err) {
+      console.error(err);
       toast("Đăng bài thất bại", "error");
     }
+  }
+
+  // Callback để update post khi like/comment
+  function handlePostUpdate(updatedPost){
+    setPosts(prev => prev.map(p =>
+      p.id === updatedPost.id ? {...p,...updatedPost} : p
+    ));
   }
 
   return (
@@ -104,13 +125,36 @@ export default function HomePage() {
         <div>
           <StoryBar onViewStory={setStoryViewer} />
           <CreatePost currentUser={currentUser} onPost={handlePost} />
+          {loading && <div>Đang tải...</div>}
           {Array.isArray(posts) && posts.map(p => (
             <PostCard
               key={p.id}
               post={p}
-              onLike={() => toast("Đã thích bài viết!", "success")}
+              onUpdate={handlePostUpdate}
             />
           ))}
+          {/* Pagination */}
+          {totalPage > 1 && (
+            <div style={{display:`flex`, gap: 8, justifyContent: `center`, marginTop: 16}}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn btn-sm"
+              >
+                Trước
+              </button>
+              <span style={{ padding: `0 12px`, lineHeight: `32px`}}>
+                Trang {page} / {totalPage}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPage, p + 1))}
+                disabled={page === totalPage}
+                className="btn btn-sm"
+              >
+                Sau
+              </button>
+              </div>
+          )}
         </div>
 
         <div className="right-col">
