@@ -68,6 +68,13 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseStaticFiles();
+// Thêm để upload ảnh
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads")),
+    RequestPath = "/uploads"
+});
 app.UseCors("ReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
