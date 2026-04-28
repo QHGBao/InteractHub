@@ -35,7 +35,8 @@ appsettings.Development.json
 # =========================
 # USER UPLOAD FILES
 # =========================
-wwwroot/uploads/
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
 
 # =========================
 # PUBLISH
