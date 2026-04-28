@@ -3,6 +3,7 @@ import { useApp } from "../context/AppContext";
 import Avatar from "../components/Shared/Avatar";
 import Icon from "../components/Shared/Icon";
 import { getStories, createStory, deleteStory } from "../services/storyService";
+import ConfirmDeleteModal from "../components/Shared/ConfirmDelete";
 
 const BASE_URL = "http://localhost:5022";
 
@@ -19,13 +20,17 @@ const BG_PRESETS = [
 
 // ─── Text shadow presets ─────────────────────────────────────────
 const TEXT_SHADOWS = {
-  dark:  "0 1px 4px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.5)",
+  dark: "0 1px 4px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.5)",
   light: "0 1px 3px rgba(255,255,255,.95), 0 0 8px rgba(255,255,255,.6)",
 };
 
 // ─── Luminance utilities ─────────────────────────────────────────
 function hexToRgb(hex) {
-  if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+  if (hex.length === 3)
+    hex = hex
+      .split("")
+      .map((c) => c + c)
+      .join("");
   const n = parseInt(hex, 16);
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
@@ -60,7 +65,8 @@ async function getLuminanceFromImage(url) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, 32, 32);
         const data = ctx.getImageData(0, 0, 32, 32).data;
-        let total = 0, count = 0;
+        let total = 0,
+          count = 0;
         for (let i = 0; i < data.length; i += 4) {
           total += rgbLuminance({ r: data[i], g: data[i + 1], b: data[i + 2] });
           count++;
@@ -112,7 +118,9 @@ function useAdaptiveTextStyle(story, index) {
     }
 
     detect();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [story.imageUrl, story.bg, index]);
 
   return style;
@@ -121,71 +129,15 @@ function useAdaptiveTextStyle(story, index) {
 // ─── Helpers ─────────────────────────────────────────────────────
 function storyBg(s, index) {
   if (s.imageUrl) {
-    const url = s.imageUrl.startsWith("http") ? s.imageUrl : BASE_URL + s.imageUrl;
+    const url = s.imageUrl.startsWith("http")
+      ? s.imageUrl
+      : BASE_URL + s.imageUrl;
     return `url(${url}) center/cover no-repeat`;
   }
   if (s.bg) return s.bg;
   return `linear-gradient(135deg,
     hsl(${index * 60 + 200},50%,15%),
     hsl(${index * 60 + 260},60%,10%))`;
-}
-
-// ─── Modal xác nhận xoá ──────────────────────────────────────────
-function ConfirmDeleteModal({ onConfirm, onCancel, loading }) {
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1100,
-      background: "rgba(0,0,0,.7)", backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}>
-      <div style={{
-        background: "#ffffff", borderRadius: 16, width: "100%", maxWidth: 340,
-        boxShadow: "0 24px 60px rgba(0,0,0,.6)",
-      }}>
-        <div style={{ padding: "28px 24px 20px", textAlign: "center" }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: "#fee2e2", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-          }}>
-            <Icon name="trash" size={24} style={{ color: "#dc2626" }} />
-          </div>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 8px" }}>
-            Xoá story này?
-          </h3>
-          <p style={{ fontSize: 13, color: "#666", margin: 0, lineHeight: 1.5 }}>
-            Story sẽ bị xoá vĩnh viễn và không thể khôi phục.
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 10, padding: "0 24px 24px" }}>
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            style={{
-              flex: 1, padding: "9px 0", borderRadius: 10,
-              border: "1px solid #ddd", background: "#f5f5f5",
-              color: "#444", cursor: "pointer", fontSize: 14, fontWeight: 500,
-            }}
-          >
-            Huỷ
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            style={{
-              flex: 1, padding: "9px 0", borderRadius: 10,
-              border: "none", background: "#dc2626",
-              color: "#fff", cursor: loading ? "not-allowed" : "pointer",
-              fontSize: 14, fontWeight: 600, opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? "Đang xoá..." : "Xoá"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ─── Modal tạo Story ─────────────────────────────────────────────
@@ -228,7 +180,7 @@ function CreateStoryModal({ onClose, onCreated }) {
     try {
       const formData = new FormData();
       if (text.trim()) formData.append("TextContent", text.trim());
-      if (imageFile)   formData.append("Image", imageFile);
+      if (imageFile) formData.append("Image", imageFile);
       formData.append("Background", selectedBg);
 
       await createStory(formData);
@@ -248,68 +200,158 @@ function CreateStoryModal({ onClose, onCreated }) {
     : selectedBg;
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,.7)", backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}>
-      <div style={{
-        background: "#ffffff", color: "#111",
-        borderRadius: 16, width: "100%", maxWidth: 500,
-        boxShadow: "0 24px 60px rgba(0,0,0,.6)",
-      }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        background: "rgba(0,0,0,.7)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          background: "#ffffff",
+          color: "#111",
+          borderRadius: 16,
+          width: "100%",
+          maxWidth: 500,
+          boxShadow: "0 24px 60px rgba(0,0,0,.6)",
+        }}
+      >
         {/* Header */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "16px 20px", borderBottom: "1px solid #e0e0e0",
-        }}>
-          <h2 style={{ fontFamily: "var(--font-head)", fontSize: 17, fontWeight: 700, margin: 0, color: "#111" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 20px",
+            borderBottom: "1px solid #e0e0e0",
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: "var(--font-head)",
+              fontSize: 17,
+              fontWeight: 700,
+              margin: 0,
+              color: "#111",
+            }}
+          >
             Tạo story mới
           </h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#666", display: "flex" }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#666",
+              display: "flex",
+            }}
+          >
             <Icon name="x" size={20} />
           </button>
         </div>
 
         {/* Body */}
         <div style={{ display: "flex", gap: 20, padding: 20 }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
-
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
             {/* Nội dung */}
             <div>
-              <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 6 }}>Nội dung</label>
+              <label
+                style={{
+                  fontSize: 12,
+                  color: "#666",
+                  display: "block",
+                  marginBottom: 6,
+                }}
+              >
+                Nội dung
+              </label>
               <textarea
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={(e) => setText(e.target.value)}
                 placeholder="Bạn đang nghĩ gì?"
                 maxLength={200}
                 rows={3}
                 style={{
-                  width: "100%", padding: "10px 12px", borderRadius: 10,
-                  border: "1px solid #ddd", background: "#f5f5f5",
-                  color: "#111", fontSize: 14, resize: "none",
-                  outline: "none", boxSizing: "border-box", lineHeight: 1.5,
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid #ddd",
+                  background: "#f5f5f5",
+                  color: "#111",
+                  fontSize: 14,
+                  resize: "none",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  lineHeight: 1.5,
                 }}
               />
-              <div style={{ fontSize: 11, color: "#999", textAlign: "right", marginTop: 2 }}>{text.length}/200</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "#999",
+                  textAlign: "right",
+                  marginTop: 2,
+                }}
+              >
+                {text.length}/200
+              </div>
             </div>
 
             {/* Ảnh */}
             <div>
-              <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 6 }}>
+              <label
+                style={{
+                  fontSize: 12,
+                  color: "#666",
+                  display: "block",
+                  marginBottom: 6,
+                }}
+              >
                 Hình ảnh (tuỳ chọn)
               </label>
               {imagePreview ? (
                 <div style={{ position: "relative" }}>
-                  <img src={imagePreview} alt="preview"
-                    style={{ width: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }} />
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: 120,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                    }}
+                  />
                   <button
                     onClick={removeImage}
                     style={{
-                      position: "absolute", top: 6, right: 6,
-                      background: "rgba(0,0,0,.6)", border: "none", borderRadius: "50%",
-                      width: 24, height: 24, cursor: "pointer", color: "#fff",
-                      display: "flex", alignItems: "center", justifyContent: "center",
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      background: "rgba(0,0,0,.6)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: 24,
+                      height: 24,
+                      cursor: "pointer",
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     <Icon name="x" size={12} />
@@ -319,23 +361,48 @@ function CreateStoryModal({ onClose, onCreated }) {
                 <button
                   onClick={() => fileRef.current.click()}
                   style={{
-                    width: "100%", padding: 10, borderRadius: 10,
-                    border: "1px dashed #ccc", background: "#f5f5f5",
-                    color: "#888", cursor: "pointer", fontSize: 13,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    width: "100%",
+                    padding: 10,
+                    borderRadius: 10,
+                    border: "1px dashed #ccc",
+                    background: "#f5f5f5",
+                    color: "#888",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
                   }}
                 >
                   <Icon name="image" size={15} /> Chọn ảnh
                 </button>
               )}
-              <input ref={fileRef} type="file" accept="image/*"
-                style={{ display: "none" }} onChange={handleImageChange} />
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleImageChange}
+              />
             </div>
 
             {/* Màu nền */}
             <div>
-              <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 8 }}>
-                Màu nền {imagePreview && <span style={{ color: "#aaa", fontWeight: 400 }}>(dùng khi không có ảnh)</span>}
+              <label
+                style={{
+                  fontSize: 12,
+                  color: "#666",
+                  display: "block",
+                  marginBottom: 8,
+                }}
+              >
+                Màu nền{" "}
+                {imagePreview && (
+                  <span style={{ color: "#aaa", fontWeight: 400 }}>
+                    (dùng khi không có ảnh)
+                  </span>
+                )}
               </label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {BG_PRESETS.map((bg, i) => (
@@ -343,9 +410,18 @@ function CreateStoryModal({ onClose, onCreated }) {
                     key={i}
                     onClick={() => setSelectedBg(bg)}
                     style={{
-                      width: 32, height: 32, borderRadius: 8, background: bg,
-                      border: "2px solid transparent", cursor: "pointer", padding: 0, outline: "none",
-                      boxShadow: selectedBg === bg ? "0 0 0 2px #fff, 0 0 0 4px #6366f1" : "none",
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: bg,
+                      border: "2px solid transparent",
+                      cursor: "pointer",
+                      padding: 0,
+                      outline: "none",
+                      boxShadow:
+                        selectedBg === bg
+                          ? "0 0 0 2px #fff, 0 0 0 4px #6366f1"
+                          : "none",
                       transition: "box-shadow .15s",
                     }}
                   />
@@ -356,17 +432,31 @@ function CreateStoryModal({ onClose, onCreated }) {
 
           {/* Preview — chữ tự động đổi màu theo nền */}
           <div style={{ flexShrink: 0, width: 100 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Xem trước</div>
-            <div style={{
-              width: 100, aspectRatio: "9/16", borderRadius: 12,
-              background: previewBg,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              padding: 8, textAlign: "center", overflow: "hidden",
-            }}>
-              <div style={{
-                fontSize: 10, lineHeight: 1.4, wordBreak: "break-word",
-                ...previewTextStyle,
-              }}>
+            <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
+              Xem trước
+            </div>
+            <div
+              style={{
+                width: 100,
+                aspectRatio: "9/16",
+                borderRadius: 12,
+                background: previewBg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 8,
+                textAlign: "center",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  lineHeight: 1.4,
+                  wordBreak: "break-word",
+                  ...previewTextStyle,
+                }}
+              >
                 {text || "Nội dung story..."}
               </div>
             </div>
@@ -374,17 +464,27 @@ function CreateStoryModal({ onClose, onCreated }) {
         </div>
 
         {/* Footer */}
-        <div style={{
-          display: "flex", justifyContent: "flex-end", gap: 10,
-          padding: "14px 20px", borderTop: "1px solid #e0e0e0",
-        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 10,
+            padding: "14px 20px",
+            borderTop: "1px solid #e0e0e0",
+          }}
+        >
           <button
             onClick={onClose}
             disabled={submitting}
             style={{
-              padding: "7px 16px", borderRadius: 8,
-              border: "1px solid #ddd", background: "#f5f5f5",
-              color: "#444", cursor: "pointer", fontSize: 13, fontWeight: 500,
+              padding: "7px 16px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              background: "#f5f5f5",
+              color: "#444",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 500,
             }}
           >
             Huỷ
@@ -393,10 +493,15 @@ function CreateStoryModal({ onClose, onCreated }) {
             onClick={handleSubmit}
             disabled={submitting}
             style={{
-              padding: "7px 16px", borderRadius: 8,
-              border: "none", background: "#6366f1",
-              color: "#fff", cursor: submitting ? "not-allowed" : "pointer",
-              fontSize: 13, fontWeight: 600, opacity: submitting ? 0.7 : 1,
+              padding: "7px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: "#6366f1",
+              color: "#fff",
+              cursor: submitting ? "not-allowed" : "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              opacity: submitting ? 0.7 : 1,
             }}
           >
             {submitting ? "Đang đăng..." : "Đăng story"}
@@ -417,34 +522,58 @@ function StoryCard({ s, i, onView, onDelete }) {
       style={{ overflow: "hidden", cursor: "pointer", position: "relative" }}
       onClick={() => onView(i)}
     >
-      <div style={{
-        height: 240, background: storyBg(s, i),
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        gap: 12, position: "relative",
-      }}>
+      <div
+        style={{
+          height: 240,
+          background: storyBg(s, i),
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+          position: "relative",
+        }}
+      >
         <Avatar user={s.user} size="lg" />
         <div style={{ fontWeight: 600, fontSize: 14, ...textStyle }}>
           {s.user?.displayName || s.user?.name}
         </div>
-        <div style={{
-          position: "absolute", bottom: 12, right: 12, fontSize: 11,
-          background: "rgba(0,0,0,.5)", color: "#fff",
-          padding: "2px 8px", borderRadius: 10,
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 12,
+            right: 12,
+            fontSize: 11,
+            background: "rgba(0,0,0,.5)",
+            color: "#fff",
+            padding: "2px 8px",
+            borderRadius: 10,
+          }}
+        >
           {s.timeAgo}
         </div>
 
         {/* Nút xoá */}
         <button
-          onClick={e => { e.stopPropagation(); onDelete(s.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(s.id);
+          }}
           style={{
-            position: "absolute", top: 8, right: 8,
+            position: "absolute",
+            top: 8,
+            right: 8,
             background: "rgba(220,38,38,.8)",
-            border: "none", borderRadius: 8,
-            padding: "4px 10px", cursor: "pointer", color: "#fff",
-            display: "flex", alignItems: "center", gap: 4,
-            fontSize: 12, fontWeight: 500,
+            border: "none",
+            borderRadius: 8,
+            padding: "4px 10px",
+            cursor: "pointer",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12,
+            fontWeight: 500,
             backdropFilter: "blur(4px)",
           }}
         >
@@ -453,10 +582,15 @@ function StoryCard({ s, i, onView, onDelete }) {
       </div>
 
       <div style={{ padding: "10px 14px" }}>
-        <div style={{
-          fontSize: 12, color: "var(--text2)",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--text2)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {s.text}
         </div>
       </div>
@@ -474,17 +608,39 @@ function StoryViewer({ stories, viewing, onClose, onPrev, onNext, onDelete }) {
   return (
     <div className="story-viewer" onClick={onClose}>
       {/* Progress bar */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, width: 360, maxWidth: "90vw" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 20,
+          width: 360,
+          maxWidth: "90vw",
+        }}
+      >
         {stories.map((_, i) => (
-          <div key={i} style={{
-            flex: 1, height: 3, borderRadius: 2,
-            background: i === viewing ? "#fff" : "rgba(255,255,255,.3)",
-          }} />
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              height: 3,
+              borderRadius: 2,
+              background: i === viewing ? "#fff" : "rgba(255,255,255,.3)",
+            }}
+          />
         ))}
       </div>
 
       {/* Header người dùng */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, width: 360, maxWidth: "90vw" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 20,
+          width: 360,
+          maxWidth: "90vw",
+        }}
+      >
         <Avatar user={story.user} />
         <div>
           <div style={{ fontWeight: 600 }}>
@@ -497,22 +653,45 @@ function StoryViewer({ stories, viewing, onClose, onPrev, onNext, onDelete }) {
         <button
           className="icon-btn"
           onClick={onClose}
-          style={{ marginLeft: "auto", background: "rgba(255,255,255,.1)", border: "none", color: "#fff" }}
+          style={{
+            marginLeft: "auto",
+            background: "rgba(255,255,255,.1)",
+            border: "none",
+            color: "#fff",
+          }}
         >
           <Icon name="x" />
         </button>
       </div>
 
       {/* Story card — chữ tự động theo màu nền/ảnh */}
-      <div style={{
-        width: 360, maxWidth: "90vw", aspectRatio: "9/16", maxHeight: "65vh",
-        borderRadius: 20, background: storyBg(story, viewing),
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", gap: 16, padding: 24, textAlign: "center",
-        position: "relative",
-      }}>
+      <div
+        style={{
+          width: 360,
+          maxWidth: "90vw",
+          aspectRatio: "9/16",
+          maxHeight: "65vh",
+          borderRadius: 20,
+          background: storyBg(story, viewing),
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+          padding: 24,
+          textAlign: "center",
+          position: "relative",
+        }}
+      >
         <Avatar user={story.user} size="xl" />
-        <div style={{ fontFamily: "var(--font-head)", fontSize: 18, fontWeight: 700, ...textStyle }}>
+        <div
+          style={{
+            fontFamily: "var(--font-head)",
+            fontSize: 18,
+            fontWeight: 700,
+            ...textStyle,
+          }}
+        >
           {story.user?.displayName || story.user?.name}
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.6, ...textStyle }}>
@@ -521,14 +700,26 @@ function StoryViewer({ stories, viewing, onClose, onPrev, onNext, onDelete }) {
 
         {/* Nút xoá trong viewer */}
         <button
-          onClick={e => { e.stopPropagation(); onDelete(story.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(story.id);
+          }}
           style={{
-            position: "absolute", top: 12, right: 12,
+            position: "absolute",
+            top: 12,
+            right: 12,
             background: "rgba(220,38,38,.8)",
-            border: "none", borderRadius: 8,
-            padding: "5px 12px", cursor: "pointer", color: "#fff",
-            display: "flex", alignItems: "center", gap: 4,
-            fontSize: 12, fontWeight: 500, backdropFilter: "blur(4px)",
+            border: "none",
+            borderRadius: 8,
+            padding: "5px 12px",
+            cursor: "pointer",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12,
+            fontWeight: 500,
+            backdropFilter: "blur(4px)",
           }}
         >
           <Icon name="trash" size={12} /> Xoá
@@ -538,13 +729,19 @@ function StoryViewer({ stories, viewing, onClose, onPrev, onNext, onDelete }) {
       {/* Điều hướng */}
       <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
         <button
-          onClick={e => { e.stopPropagation(); onPrev(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPrev();
+          }}
           className="btn btn-ghost btn-sm"
         >
           ◀ Trước
         </button>
         <button
-          onClick={e => { e.stopPropagation(); onNext(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onNext();
+          }}
           className="btn btn-ghost btn-sm"
         >
           Tiếp ▶
@@ -611,9 +808,27 @@ export default function StoriesPage() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-head)", fontSize: 22, fontWeight: 700 }}>Stories</h1>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 20,
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: "var(--font-head)",
+            fontSize: 22,
+            fontWeight: 700,
+          }}
+        >
+          Stories
+        </h1>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => setShowCreate(true)}
+        >
           <Icon name="plus" size={14} /> Tạo story
         </button>
       </div>
@@ -629,6 +844,9 @@ export default function StoriesPage() {
       {/* Modal xác nhận xoá */}
       {confirmDelete && (
         <ConfirmDeleteModal
+          open={!!confirmDelete}
+          title="Xoá story này?"
+          description="Story sẽ bị xoá vĩnh viễn và không thể khôi phục."
           loading={deleting}
           onConfirm={handleConfirmDelete}
           onCancel={() => setConfirmDelete(null)}
@@ -641,9 +859,14 @@ export default function StoriesPage() {
           stories={stories}
           viewing={viewing}
           onClose={() => setViewing(null)}
-          onPrev={() => setViewing(v => Math.max(0, v - 1))}
-          onNext={() => setViewing(v => v < stories.length - 1 ? v + 1 : null)}
-          onDelete={(id) => { setViewing(null); setConfirmDelete(id); }}
+          onPrev={() => setViewing((v) => Math.max(0, v - 1))}
+          onNext={() =>
+            setViewing((v) => (v < stories.length - 1 ? v + 1 : null))
+          }
+          onDelete={(id) => {
+            setViewing(null);
+            setConfirmDelete(id);
+          }}
         />
       )}
 
