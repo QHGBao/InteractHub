@@ -23,8 +23,7 @@ public class LikesController : ControllerBase{
             return NotFound(new {message = "Post not found"});
         }
         // TODO: Get userId from auth
-        // var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var userId = Guid.Parse("4db5c6b3-607a-4099-692e-08de9c30adf0");
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var existingLike = await _context.Likes
         .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
         bool isLiked;

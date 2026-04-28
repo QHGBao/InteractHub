@@ -53,8 +53,7 @@ public class CommentsController : ControllerBase{
         var post = await _context.Posts.FindAsync(postId);
         if (post == null || post.IsDeleted)
             return NotFound(new {message = "Post not found"});
-        // var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var userId = Guid.Parse("4db5c6b3-607a-4099-692e-08de9c30adf0");
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         // Nếu có parentCommentId, check nó có tồn tại không
         if (dto.ParentCommentId.HasValue){
             var parentExist = await _context.Comments

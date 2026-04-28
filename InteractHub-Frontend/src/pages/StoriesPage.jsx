@@ -4,6 +4,8 @@ import Avatar from "../components/Shared/Avatar";
 import Icon from "../components/Shared/Icon";
 import { getStories, createStory, deleteStory } from "../services/storyService";
 
+const BASE_URL = "http://localhost:5022";
+
 const BG_PRESETS = [
   "linear-gradient(135deg, #1a1a2e, #16213e)",
   "linear-gradient(135deg, #0f3460, #533483)",
@@ -15,8 +17,113 @@ const BG_PRESETS = [
   "linear-gradient(135deg, #3d405b, #1a1a2e)",
 ];
 
+// ─── Text shadow presets ─────────────────────────────────────────
+const TEXT_SHADOWS = {
+  dark:  "0 1px 4px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.5)",
+  light: "0 1px 3px rgba(255,255,255,.95), 0 0 8px rgba(255,255,255,.6)",
+};
+
+// ─── Luminance utilities ─────────────────────────────────────────
+function hexToRgb(hex) {
+  if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+  const n = parseInt(hex, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbLuminance({ r, g, b }) {
+  const ch = (v) => {
+    v /= 255;
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+}
+
+// Phân tích độ sáng từ chuỗi gradient CSS
+function getLuminanceFromGradient(bg) {
+  const colors = [];
+  const re = /#([0-9a-f]{3,6})\b/gi;
+  let m;
+  while ((m = re.exec(bg)) !== null) colors.push(hexToRgb(m[1]));
+  if (!colors.length) return 0.3; // mặc định coi là tối
+  return colors.reduce((s, c) => s + rgbLuminance(c), 0) / colors.length;
+}
+
+// Phân tích độ sáng từ ảnh qua Canvas (sample 32×32 cho nhanh)
+async function getLuminanceFromImage(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 32;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, 32, 32);
+        const data = ctx.getImageData(0, 0, 32, 32).data;
+        let total = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          total += rgbLuminance({ r: data[i], g: data[i + 1], b: data[i + 2] });
+          count++;
+        }
+        resolve(count ? total / count : 0.5);
+      } catch {
+        resolve(0.5);
+      }
+    };
+    img.onerror = () => resolve(0.5);
+    img.src = url;
+  });
+}
+
+// ─── Hook: tự động chọn màu chữ tương phản ──────────────────────
+// Trả về { color, textShadow } phù hợp với nền ảnh hoặc gradient
+function useAdaptiveTextStyle(story, index) {
+  const [style, setStyle] = useState({
+    color: "#fff",
+    textShadow: TEXT_SHADOWS.dark,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function detect() {
+      let lum;
+
+      if (story.imageUrl) {
+        // Có ảnh → phân tích pixel thực
+        const url = story.imageUrl.startsWith("http")
+          ? story.imageUrl
+          : BASE_URL + story.imageUrl;
+        lum = await getLuminanceFromImage(url);
+      } else {
+        // Không có ảnh → phân tích màu gradient
+        const bg = story.bg || storyBg(story, index);
+        lum = getLuminanceFromGradient(bg);
+      }
+
+      if (cancelled) return;
+
+      // Ngưỡng 0.35: sáng hơn → chữ đen, tối hơn → chữ trắng
+      if (lum > 0.35) {
+        setStyle({ color: "#111", textShadow: TEXT_SHADOWS.light });
+      } else {
+        setStyle({ color: "#fff", textShadow: TEXT_SHADOWS.dark });
+      }
+    }
+
+    detect();
+    return () => { cancelled = true; };
+  }, [story.imageUrl, story.bg, index]);
+
+  return style;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────
 function storyBg(s, index) {
-  if (s.imageUrl) return `url(${s.imageUrl}) center/cover no-repeat`;
+  if (s.imageUrl) {
+    const url = s.imageUrl.startsWith("http") ? s.imageUrl : BASE_URL + s.imageUrl;
+    return `url(${url}) center/cover no-repeat`;
+  }
   if (s.bg) return s.bg;
   return `linear-gradient(135deg,
     hsl(${index * 60 + 200},50%,15%),
@@ -91,6 +198,13 @@ function CreateStoryModal({ onClose, onCreated }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Preview story dùng object tạm để hook tính màu chữ
+  const previewStory = {
+    imageUrl: imagePreview || null,
+    bg: imagePreview ? null : selectedBg,
+  };
+  const previewTextStyle = useAdaptiveTextStyle(previewStory, 0);
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -218,7 +332,7 @@ function CreateStoryModal({ onClose, onCreated }) {
                 style={{ display: "none" }} onChange={handleImageChange} />
             </div>
 
-            {/* Màu nền — luôn hiện */}
+            {/* Màu nền */}
             <div>
               <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 8 }}>
                 Màu nền {imagePreview && <span style={{ color: "#aaa", fontWeight: 400 }}>(dùng khi không có ảnh)</span>}
@@ -240,7 +354,7 @@ function CreateStoryModal({ onClose, onCreated }) {
             </div>
           </div>
 
-          {/* Preview */}
+          {/* Preview — chữ tự động đổi màu theo nền */}
           <div style={{ flexShrink: 0, width: 100 }}>
             <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Xem trước</div>
             <div style={{
@@ -249,7 +363,10 @@ function CreateStoryModal({ onClose, onCreated }) {
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: 8, textAlign: "center", overflow: "hidden",
             }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,.9)", lineHeight: 1.4, wordBreak: "break-word" }}>
+              <div style={{
+                fontSize: 10, lineHeight: 1.4, wordBreak: "break-word",
+                ...previewTextStyle,
+              }}>
                 {text || "Nội dung story..."}
               </div>
             </div>
@@ -290,6 +407,153 @@ function CreateStoryModal({ onClose, onCreated }) {
   );
 }
 
+// ─── StoryCard — component riêng để dùng hook ────────────────────
+function StoryCard({ s, i, onView, onDelete }) {
+  const textStyle = useAdaptiveTextStyle(s, i);
+
+  return (
+    <div
+      className="card"
+      style={{ overflow: "hidden", cursor: "pointer", position: "relative" }}
+      onClick={() => onView(i)}
+    >
+      <div style={{
+        height: 240, background: storyBg(s, i),
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        gap: 12, position: "relative",
+      }}>
+        <Avatar user={s.user} size="lg" />
+        <div style={{ fontWeight: 600, fontSize: 14, ...textStyle }}>
+          {s.user?.displayName || s.user?.name}
+        </div>
+        <div style={{
+          position: "absolute", bottom: 12, right: 12, fontSize: 11,
+          background: "rgba(0,0,0,.5)", color: "#fff",
+          padding: "2px 8px", borderRadius: 10,
+        }}>
+          {s.timeAgo}
+        </div>
+
+        {/* Nút xoá */}
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(s.id); }}
+          style={{
+            position: "absolute", top: 8, right: 8,
+            background: "rgba(220,38,38,.8)",
+            border: "none", borderRadius: 8,
+            padding: "4px 10px", cursor: "pointer", color: "#fff",
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 12, fontWeight: 500,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <Icon name="trash" size={12} /> Xoá
+        </button>
+      </div>
+
+      <div style={{ padding: "10px 14px" }}>
+        <div style={{
+          fontSize: 12, color: "var(--text2)",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {s.text}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── StoryViewer — viewer toàn màn hình ─────────────────────────
+function StoryViewer({ stories, viewing, onClose, onPrev, onNext, onDelete }) {
+  const story = stories[viewing];
+  const textStyle = useAdaptiveTextStyle(story, viewing);
+
+  if (!story) return null;
+
+  return (
+    <div className="story-viewer" onClick={onClose}>
+      {/* Progress bar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, width: 360, maxWidth: "90vw" }}>
+        {stories.map((_, i) => (
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            background: i === viewing ? "#fff" : "rgba(255,255,255,.3)",
+          }} />
+        ))}
+      </div>
+
+      {/* Header người dùng */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, width: 360, maxWidth: "90vw" }}>
+        <Avatar user={story.user} />
+        <div>
+          <div style={{ fontWeight: 600 }}>
+            {story.user?.displayName || story.user?.name}
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,.6)" }}>
+            {story.timeAgo}
+          </div>
+        </div>
+        <button
+          className="icon-btn"
+          onClick={onClose}
+          style={{ marginLeft: "auto", background: "rgba(255,255,255,.1)", border: "none", color: "#fff" }}
+        >
+          <Icon name="x" />
+        </button>
+      </div>
+
+      {/* Story card — chữ tự động theo màu nền/ảnh */}
+      <div style={{
+        width: 360, maxWidth: "90vw", aspectRatio: "9/16", maxHeight: "65vh",
+        borderRadius: 20, background: storyBg(story, viewing),
+        display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", gap: 16, padding: 24, textAlign: "center",
+        position: "relative",
+      }}>
+        <Avatar user={story.user} size="xl" />
+        <div style={{ fontFamily: "var(--font-head)", fontSize: 18, fontWeight: 700, ...textStyle }}>
+          {story.user?.displayName || story.user?.name}
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.6, ...textStyle }}>
+          {story.text}
+        </div>
+
+        {/* Nút xoá trong viewer */}
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(story.id); }}
+          style={{
+            position: "absolute", top: 12, right: 12,
+            background: "rgba(220,38,38,.8)",
+            border: "none", borderRadius: 8,
+            padding: "5px 12px", cursor: "pointer", color: "#fff",
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 12, fontWeight: 500, backdropFilter: "blur(4px)",
+          }}
+        >
+          <Icon name="trash" size={12} /> Xoá
+        </button>
+      </div>
+
+      {/* Điều hướng */}
+      <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+        <button
+          onClick={e => { e.stopPropagation(); onPrev(); }}
+          className="btn btn-ghost btn-sm"
+        >
+          ◀ Trước
+        </button>
+        <button
+          onClick={e => { e.stopPropagation(); onNext(); }}
+          className="btn btn-ghost btn-sm"
+        >
+          Tiếp ▶
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── StoriesPage ─────────────────────────────────────────────────
 export default function StoriesPage() {
   const app = useApp();
@@ -298,7 +562,7 @@ export default function StoriesPage() {
   const [viewing, setViewing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null); // id story cần xoá
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -373,68 +637,14 @@ export default function StoriesPage() {
 
       {/* Story viewer */}
       {viewing !== null && stories[viewing] && (
-        <div className="story-viewer" onClick={() => setViewing(null)}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 20, width: 360, maxWidth: "90vw" }}>
-            {stories.map((_, i) => (
-              <div key={i} style={{
-                flex: 1, height: 3, borderRadius: 2,
-                background: i === viewing ? "#fff" : "rgba(255,255,255,.3)",
-              }} />
-            ))}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, width: 360, maxWidth: "90vw" }}>
-            <Avatar user={stories[viewing].user} />
-            <div>
-              <div style={{ fontWeight: 600 }}>
-                {stories[viewing].user?.displayName || stories[viewing].user?.name}
-              </div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,.6)" }}>
-                {stories[viewing].timeAgo}
-              </div>
-            </div>
-            <button
-              className="icon-btn"
-              onClick={() => setViewing(null)}
-              style={{ marginLeft: "auto", background: "rgba(255,255,255,.1)", border: "none", color: "#fff" }}
-            >
-              <Icon name="x" />
-            </button>
-          </div>
-
-          <div style={{
-            width: 360, maxWidth: "90vw", aspectRatio: "9/16", maxHeight: "65vh",
-            borderRadius: 20, background: storyBg(stories[viewing], viewing),
-            display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", gap: 16, padding: 24, textAlign: "center",
-          }}>
-            <Avatar user={stories[viewing].user} size="xl" />
-            <div style={{ fontFamily: "var(--font-head)", fontSize: 18, fontWeight: 700 }}>
-              {stories[viewing].user?.displayName || stories[viewing].user?.name}
-            </div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,.8)", lineHeight: 1.6 }}>
-              {stories[viewing].text}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-            <button
-              onClick={e => { e.stopPropagation(); setViewing(v => Math.max(0, v - 1)); }}
-              className="btn btn-ghost btn-sm"
-            >
-              ◀ Trước
-            </button>
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                setViewing(v => v < stories.length - 1 ? v + 1 : null);
-              }}
-              className="btn btn-ghost btn-sm"
-            >
-              Tiếp ▶
-            </button>
-          </div>
-        </div>
+        <StoryViewer
+          stories={stories}
+          viewing={viewing}
+          onClose={() => setViewing(null)}
+          onPrev={() => setViewing(v => Math.max(0, v - 1))}
+          onNext={() => setViewing(v => v < stories.length - 1 ? v + 1 : null)}
+          onDelete={(id) => { setViewing(null); setConfirmDelete(id); }}
+        />
       )}
 
       {/* Empty state */}
@@ -448,52 +658,13 @@ export default function StoriesPage() {
       {stories.length > 0 && (
         <div className="grid-3">
           {stories.map((s, i) => (
-            <div
+            <StoryCard
               key={s.id || i}
-              className="card"
-              style={{ overflow: "hidden", cursor: "pointer", position: "relative" }}
-              onClick={() => setViewing(i)}
-            >
-              <div style={{
-                height: 240, background: storyBg(s, i),
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                gap: 12, position: "relative",
-              }}>
-                <Avatar user={s.user} size="lg" />
-                <div style={{ fontWeight: 600, fontSize: 14 }}>
-                  {s.user?.displayName || s.user?.name}
-                </div>
-                <div style={{
-                  position: "absolute", bottom: 12, right: 12, fontSize: 11,
-                  background: "rgba(0,0,0,.5)", padding: "2px 8px", borderRadius: 10,
-                }}>
-                  {s.timeAgo}
-                </div>
-
-                {/* Nút xoá */}
-                <button
-                  onClick={e => { e.stopPropagation(); setConfirmDelete(s.id); }}
-                  style={{
-                    position: "absolute", top: 8, right: 8,
-                    background: "rgba(220,38,38,.8)",
-                    border: "none", borderRadius: 8,
-                    padding: "4px 10px", cursor: "pointer", color: "#fff",
-                    display: "flex", alignItems: "center", gap: 4,
-                    fontSize: 12, fontWeight: 500,
-                    backdropFilter: "blur(4px)",
-                  }}
-                >
-                  <Icon name="trash" size={12} /> Xoá
-                </button>
-              </div>
-
-              <div style={{ padding: "10px 14px" }}>
-                <div style={{ fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {s.text}
-                </div>
-              </div>
-            </div>
+              s={s}
+              i={i}
+              onView={setViewing}
+              onDelete={setConfirmDelete}
+            />
           ))}
         </div>
       )}

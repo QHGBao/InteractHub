@@ -69,7 +69,7 @@ export default function PostCard({ post, onUpdate }) {
         <Avatar user={post.author} />
         <div style={{ flex: 1}}>
           <div style={{ fontWeight: 600, fontSize: 14}}>
-            {post.author?.displayName || post.author?.name || "Unknown"}
+            {post.author?.userName ||post.author?.displayName || post.author?.name || "Unknown"}
           </div>
           <div style={{ fontSize: 12, color: `var(--text3)`}}>
             {new Date(post.createdAt).toLocaleString('vi-VN')}

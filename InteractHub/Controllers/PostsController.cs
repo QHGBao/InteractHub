@@ -97,8 +97,7 @@
         // POST /api/posts
         [HttpPost]
         public async Task<ActionResult> CreatePost([FromBody] CreatePostDto dto){
-            var userId = Guid.Parse("4db5c6b3-607a-4099-692e-08de9c30adf0");
-            // var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var post = new Post{
                 UserId = userId,
                 Content = dto.Content,

@@ -25,7 +25,7 @@ public class StoryController : ControllerBase
     public async Task<IActionResult> GetStories()
     {
         var now = DateTime.UtcNow;
-
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var stories = await _context.Stories
             .Include(s => s.Author)
             .Where(s => s.ExpiresAt > now)

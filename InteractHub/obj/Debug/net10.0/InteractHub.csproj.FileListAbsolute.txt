@@ -489,8 +489,13 @@ C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\obj\Debug\net10.0\refint\I
 C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\obj\Debug\net10.0\InteractHub.pdb
 C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\obj\Debug\net10.0\InteractHub.genruntimeconfig.cache
 C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\obj\Debug\net10.0\ref\InteractHub.dll
+<<<<<<< HEAD
+=======
+C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.staticwebassets.runtime.json
+>>>>>>> 275778275d5e65191bfe63bc9d295407a2bbf6fb
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\appsettings.Development.json
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\appsettings.json
+D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.staticwebassets.runtime.json
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.staticwebassets.endpoints.json
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.exe
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.deps.json
@@ -653,8 +658,3 @@ D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\refint\InteractH
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\InteractHub.pdb
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\InteractHub.genruntimeconfig.cache
 D:\USETamThoi\C_Sharp\InteractHub\InteractHub\obj\Debug\net10.0\ref\InteractHub.dll
-<<<<<<< HEAD
-D:\USETamThoi\C_Sharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.staticwebassets.runtime.json
-=======
-C:\Users\Admin\Desktop\Csharp\InteractHub\InteractHub\bin\Debug\net10.0\InteractHub.staticwebassets.runtime.json
->>>>>>> 275778275d5e65191bfe63bc9d295407a2bbf6fb
