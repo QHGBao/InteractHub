@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
-import { toggleLike, getComments, addComment } from "../../services/postService";
+import { toggleLike, getComments, addComment, deletePost } from "../../services/postService";
 
-export default function PostCard({ post, onUpdate }) {
+export default function PostCard({ post, onUpdate, onDelete }) {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
@@ -14,20 +14,38 @@ export default function PostCard({ post, onUpdate }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(()=>{
-    if (showComments && comments.length === 0){
+  // ✅ State cho dropdown menu
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (showComments && comments.length === 0) {
       loadComments();
     }
   }, [showComments]);
 
-  async function loadComments(){
+  // ✅ Close menu khi click bên ngoài
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showMenu]);
+
+  async function loadComments() {
     try {
       setLoadingComments(true);
       const data = await getComments(post.id);
       setComments(data || []);
     } catch (err) {
-      console.error("Load comments error: ",err);
-    } finally{
+      console.error("Load comments error:", err);
+    } finally {
       setLoadingComments(false);
     }
   }
@@ -38,27 +56,45 @@ export default function PostCard({ post, onUpdate }) {
       setLiked(result.isLiked);
       setLikesCount(result.likesCount);
       onUpdate && onUpdate({ id: post.id, likesCount: result.likesCount });
-    } catch (err){
-      console.error("Like error: ", err);
+    } catch (err) {
+      console.error("Like error:", err);
     }
   }
 
-  async function handleAddComment(){
+  async function handleAddComment() {
     if (!commentText.trim()) return;
+    
     try {
       setSubmitting(true);
       const newComment = await addComment(post.id, {
         content: commentText,
         parentCommentId: null,
       });
-      setComments(prev => [newComment, ...prev]);
-      setCommentsCount(prev => prev + 1);
+      setComments((prev) => [newComment, ...prev]);
+      setCommentsCount((prev) => prev + 1);
       setCommentText("");
       onUpdate && onUpdate({ id: post.id, commentsCount: commentsCount + 1 });
-    } catch (err){
-      console.error("Add comment error: ", err);
+    } catch (err) {
+      console.error("Add comment error:", err);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // ✅ Handle delete post
+  async function handleDelete() {
+    const confirmed = window.confirm("Bạn có chắc muốn xóa bài viết này?");
+    if (!confirmed) return;
+
+    try {
+      await deletePost(post.id);
+      alert("Đã xóa bài viết!");
+      
+      // ✅ Notify parent để remove khỏi list
+      onDelete && onDelete(post.id);
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Xóa bài thất bại!");
     }
   }
 
@@ -67,122 +103,193 @@ export default function PostCard({ post, onUpdate }) {
       {/* Header */}
       <div className="post-header">
         <Avatar user={post.author} />
-        <div style={{ flex: 1}}>
-          <div style={{ fontWeight: 600, fontSize: 14}}>
-            {post.author?.userName ||post.author?.displayName || post.author?.name || "Unknown"}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>
+            {post.author?.userName ||
+              post.author?.displayName ||
+              post.author?.name ||
+              "Unknown"}
           </div>
-          <div style={{ fontSize: 12, color: `var(--text3)`}}>
-            {new Date(post.createdAt).toLocaleString('vi-VN')}
+          <div style={{ fontSize: 12, color: "var(--text3)" }}>
+            {new Date(post.createdAt).toLocaleString("vi-VN")}
           </div>
         </div>
-        <button className="btn btn-ghost btn-xs">
-          <Icon name="more" />
-        </button>
+
+        {/* ✅ Dropdown menu */}
+        <div style={{ position: "relative" }} ref={menuRef}>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <Icon name="more" />
+          </button>
+
+          {showMenu && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                background: "var(--bg3)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                marginTop: 4,
+                minWidth: 150,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                zIndex: 10,
+              }}
+            >
+              <button
+                onClick={() => {
+                  handleDelete();
+                  setShowMenu(false);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  textAlign: "left",
+                  fontSize: 13,
+                  color: "var(--danger)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  borderRadius: 8,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "var(--bg4)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                <Icon name="trash" size={14} />
+                Xóa bài viết
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      <p style={{ margin: '12px 0', lineHeight: 1.5 }}>{post.content}</p>
+      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>{post.content}</p>
 
-      {/* Image nếu có */}
+      {/* Image */}
       {post.imageUrl && (
-        <img 
-          src={post.imageUrl} 
-          alt="Post" 
-          style={{ width: '100%', borderRadius: 8, marginBottom: 12 }}
+        <img
+          src={post.imageUrl}
+          alt="Post"
+          style={{ width: "100%", borderRadius: 8, marginBottom: 12 }}
         />
       )}
 
       {/* Actions */}
-      <div style={{ 
-        display: 'flex', 
-        gap: 12, 
-        paddingTop: 12, 
-        borderTop: '1px solid var(--border)' 
-      }}>
-        <button 
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          paddingTop: 12,
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        <button
           onClick={handleLike}
           className="btn btn-ghost btn-sm"
-          style={{ color: liked ? '#e74c3c' : 'inherit' }}
+          style={{ color: liked ? "#e74c3c" : "inherit" }}
         >
-          {liked ? '❤️' : '🤍'} {likesCount}
+          {liked ? "❤️" : "🤍"} {likesCount}
         </button>
 
-        <button 
-          onClick={() => setShowComments(prev => !prev)}
+        <button
+          onClick={() => setShowComments((prev) => !prev)}
           className="btn btn-ghost btn-sm"
         >
           💬 {commentsCount}
         </button>
 
-        <button className="btn btn-ghost btn-sm">
-          🔗 Chia sẻ
-        </button>
+        <button className="btn btn-ghost btn-sm">🔗 Chia sẻ</button>
       </div>
 
       {/* Comments Section */}
       {showComments && (
-        <div style={{ 
-          marginTop: 12, 
-          paddingTop: 12, 
-          borderTop: '1px solid var(--border)' 
-        }}>
-          {/* Add Comment */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 12,
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input
               type="text"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Viết bình luận..."
-              style={{ 
-                flex: 1, 
-                padding: '8px 12px', 
+              style={{
+                flex: 1,
+                padding: "8px 12px",
                 borderRadius: 20,
-                border: '1px solid var(--border)',
-                fontSize: 13
+                border: "1px solid var(--border)",
+                fontSize: 13,
+                background: "var(--bg3)",
+                color: "var(--text)",
               }}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
+              onKeyPress={(e) => e.key === "Enter" && handleAddComment()}
             />
-            <button 
+            <button
               onClick={handleAddComment}
               disabled={!commentText.trim() || submitting}
               className="btn btn-primary btn-sm"
             >
-              {submitting ? '...' : 'Gửi'}
+              {submitting ? "..." : "Gửi"}
             </button>
           </div>
 
-          {/* Comments List */}
           {loadingComments ? (
-            <div style={{ textAlign: 'center', padding: 16, color: 'var(--text3)' }}>
+            <div
+              style={{ textAlign: "center", padding: 16, color: "var(--text3)" }}
+            >
               Đang tải...
             </div>
           ) : comments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 16, color: 'var(--text3)' }}>
+            <div
+              style={{ textAlign: "center", padding: 16, color: "var(--text3)" }}
+            >
               Chưa có bình luận nào
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {comments.map(comment => (
-                <div key={comment.id} style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {comments.map((comment) => (
+                <div key={comment.id} style={{ display: "flex", gap: 8 }}>
                   <Avatar user={comment.author} size="xs" />
                   <div style={{ flex: 1 }}>
-                    <div style={{ 
-                      background: 'var(--bg2)', 
-                      padding: '8px 12px', 
-                      borderRadius: 12 
-                    }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
+                    <div
+                      style={{
+                        background: "var(--bg2)",
+                        padding: "8px 12px",
+                        borderRadius: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 13,
+                          marginBottom: 4,
+                        }}
+                      >
                         {comment.author?.userName || "Unknown"}
                       </div>
                       <div style={{ fontSize: 13 }}>{comment.content}</div>
                     </div>
-                    <div style={{ 
-                      fontSize: 11, 
-                      color: 'var(--text3)', 
-                      marginTop: 4,
-                      paddingLeft: 12
-                    }}>
-                      {new Date(comment.createdAt).toLocaleString('vi-VN')}
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--text3)",
+                        marginTop: 4,
+                        paddingLeft: 12,
+                      }}
+                    >
+                      {new Date(comment.createdAt).toLocaleString("vi-VN")}
                       {comment.repliesCount > 0 && (
                         <span style={{ marginLeft: 12 }}>
                           {comment.repliesCount} phản hồi

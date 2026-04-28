@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Avatar from "./Avatar";
-import Icon from "./Icon";
 import ImageUpload from "./ImageUpload";
 import { uploadImage } from "../../services/uploadService";
 
@@ -21,8 +20,6 @@ export default function CreatePost({ currentUser, onPost }) {
       // Upload ảnh nếu có
       if (imageFile) {
         const uploadResult = await uploadImage(imageFile);
-        // Backend trả về: /uploads/images/xxx.jpg
-        // Ghép với domain backend
         finalImageUrl = `http://localhost:5022${uploadResult.url}`;
       }
 
@@ -43,7 +40,6 @@ export default function CreatePost({ currentUser, onPost }) {
   function handleImageSelect(file) {
     setImageFile(file);
     
-    // Tạo preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
@@ -80,14 +76,6 @@ export default function CreatePost({ currentUser, onPost }) {
       />
 
       <div className="create-post-actions">
-        {/* Nút Image đã move vào ImageUpload component */}
-        
-        <button className="create-icon-btn">
-          <Icon name="video" size={15} /> Video
-        </button>
-        <button className="create-icon-btn">
-          <Icon name="smile" size={15} /> Cảm xúc
-        </button>
         <div style={{ flex: 1 }} />
         <button
           className="btn btn-primary btn-sm"
