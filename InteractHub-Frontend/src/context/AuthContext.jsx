@@ -31,10 +31,10 @@ export const AuthProvider = ({ children }) => {
     if (!data) return;
 
     localStorage.setItem("token", data.token || "");
-    localStorage.setItem("user", JSON.stringify(data.user || null));
+    localStorage.setItem("user", JSON.stringify(data || null));
 
     setToken(data.token || null);
-    setUser(data.user || null);
+    setUser(data || null);
   };
 
   const login = async (data) => {

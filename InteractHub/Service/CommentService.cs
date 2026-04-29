@@ -4,13 +4,15 @@ using InteractHub.Model;
 using Microsoft.EntityFrameworkCore;
 
 namespace InteractHub.Service;
+
 public class CommentService : ICommentService
 {
     private readonly AppDbContext _context;
-
-    public CommentService(AppDbContext context)
+    private readonly INotificationService _notificationService;
+    public CommentService(AppDbContext context, INotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
     public async Task<object?> GetComments(Guid postId)
     {
@@ -72,6 +74,38 @@ public class CommentService : ICommentService
 
         // Load lại author
         await _context.Entry(comment).Reference(c => c.Author).LoadAsync();
+
+        var actor = await _context.Users.FindAsync(userId);
+        var actorName = actor?.DisplayName ?? "Ai đó";
+
+        // Thông báo cho chủ bài
+        if (post.UserId != userId && !dto.ParentCommentId.HasValue)
+        {
+            await _notificationService.CreateAndSendAsync(
+                userId: post.UserId,
+                actorId: userId,
+                type: "Comment",
+                message: $"{actorName} đã bình luận về bài viết của bạn",
+                referenceId: postId
+            );
+        }
+
+        // Thông báo cho chủ comment cha
+        if (dto.ParentCommentId.HasValue)
+        {
+            var parentComment = await _context.Comments.FindAsync(dto.ParentCommentId.Value);
+            if (parentComment != null && parentComment.UserId != userId)
+            {
+                await _notificationService.CreateAndSendAsync(
+                    userId: parentComment.UserId,
+                    actorId: userId,
+                    type: "Comment",
+                    message: $"{actorName} đã trả lời bình luận của bạn",
+                    referenceId: postId
+                );
+            }
+        }
+
         return new
         {
             comment.Id,
