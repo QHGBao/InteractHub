@@ -58,25 +58,36 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 Controllers/
  AuthController.cs
  CommentsController.cs
+ FriendController.cs
  LikesController.cs
+ NotificationsController.cs
  PostsController.cs
  SearchController.cs
  StoryController.cs
  UploadController.cs
+ UserController.cs
 Data/AppDbContext.cs
 DTOs/Auth/
  AuthResponseDto.cs
  LoginDto.cs
  RegisterDto.cs
-DTOs/Post/
- CommentDto.cs
- PostDto.cs
+DTOs/Friend/
+ FriendRequestDto.cs
+ FriendResponseDto.cs
 DTOs/
+ Notification/NotificationDto.cs
+ Post/
+  CommentDto.cs
+  PostDto.cs
  Search/SearchResultDto.cs
  Story/
   CreateStoryDto.cs
   StoryDto.cs
- User/UserDto.cs
+ User/
+  UpdateProfileDto.cs
+  UserDto.cs
+  UserProfileDto.cs
+Hubs/NotificationHub.cs
 Migrations/
  20260420145707_InitialCreate.cs
  20260420145707_InitialCreate.Designer.cs
@@ -100,11 +111,23 @@ obj/Debug/net10.0/
 Program.cs
 Service/
  AuthService.cs
+ CommentService.cs
+ FriendService.cs
  IAuthService.cs
+ ICommentService.cs
+ IFriendService.cs
+ ILikeService.cs
+ INotificationService.cs
+ IPostService.cs
  ISearchService.cs
  IStoryService.cs
+ IUserService.cs
+ LikeService.cs
+ NotificationService.cs
+ PostService.cs
  SearchService.cs
  StoryService.cs
+ UserService.cs
 
 [metadataReferences]
 <DOTNET>/packs/Microsoft.AspNetCore.App.Ref/10.0.5/ref/net10.0/

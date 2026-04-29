@@ -6,14 +6,15 @@ import Avatar from '../components/Shared/Avatar';
 import Icon from '../components/Shared/Icon';
 import Toasts from '../components/Shared/Toasts';
 import { useApp } from '../context/AppContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const PAGE_TITLES = {
-  '/':              'Trang chủ',
-  '/friends':       'Bạn bè',
-  '/stories':       'Stories',
+  '/': 'Trang chủ',
+  '/friends': 'Bạn bè',
+  '/stories': 'Stories',
   '/notifications': 'Thông báo',
-  '/settings':      'Cài đặt',
-  '/search':        'Tìm kiếm',
+  '/settings': 'Cài đặt',
+  '/search': 'Tìm kiếm',
 };
 
 const MainLayout = () => {
@@ -24,14 +25,15 @@ const MainLayout = () => {
   const [searchVal, setSearchVal] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const searchRef = useRef(null);
+  const { unreadCount } = useNotifications();
 
   const pathToPage = {
-    '/':              'home',
-    '/friends':       'friends',
-    '/stories':       'stories',
+    '/': 'home',
+    '/friends': 'friends',
+    '/stories': 'stories',
     '/notifications': 'notifications',
-    '/settings':      'settings',
-    '/search':        'search',
+    '/settings': 'settings',
+    '/search': 'search',
   };
 
   const currentPage = location.pathname.startsWith('/profile')
@@ -40,13 +42,13 @@ const MainLayout = () => {
 
   function handleNavigate(pageId) {
     const pageToPath = {
-      home:          '/',
-      friends:       '/friends',
-      stories:       '/stories',
+      home: '/',
+      friends: '/friends',
+      stories: '/stories',
       notifications: '/notifications',
-      profile:       `/profile/${user?.userId}`,
-      settings:      '/settings',
-      admin:         '/admin',
+      profile: `/profile/${user?.userId}`,
+      settings: '/settings',
+      admin: '/admin',
     };
     navigate(pageToPath[pageId] || '/');
     setSidebarOpen(false);
@@ -110,8 +112,27 @@ const MainLayout = () => {
           <button
             className="btn btn-ghost btn-sm topbar-icon"
             onClick={() => navigate('/notifications')}
+            style={{ position: 'relative' }}
           >
             <Icon name="bell" size={18} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: 2, right: 2,
+                background: 'red',
+                color: 'white',
+                fontSize: 10,
+                fontWeight: 700,
+                borderRadius: '50%',
+                width: 16, height: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
 
           <div

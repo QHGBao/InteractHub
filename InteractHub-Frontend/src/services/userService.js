@@ -1,12 +1,12 @@
 // src/services/userService.js
-import axios from "axios";
+import axiosInstance from '../api/axiosInstance';
 
 export const getUserProfile = async (userId) => {
-  const res = await axios.get(`/api/users/${userId}`);
+  const res = await axiosInstance.get(`/user/${userId}`);
   return res.data;
 };
 
 export const getUserPosts = async (userId) => {
-  const res = await axios.get(`/api/posts/user/${userId}`);
+  const res = await axiosInstance.get(`/post/user/${userId}`);
   return res.data;
 };

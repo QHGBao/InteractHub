@@ -1,4 +1,5 @@
 using InteractHub.Data;
+using InteractHub.Hubs;
 using InteractHub.Model;
 using InteractHub.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -27,6 +28,14 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStoryService, StoryService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<StoryService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// SignalR
+builder.Services.AddSignalR();
 
 // ── JWT Authentication ──────────────────────────────────────────
 builder.Services.AddAuthentication(options =>
@@ -47,6 +56,21 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         ValidateLifetime = true
     };
+
+    options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
 });
 
 // ── CORS — cho phép React gọi API ───────────────────────────────
@@ -62,6 +86,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IFriendService, FriendService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
@@ -79,4 +105,5 @@ app.UseCors("ReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 app.Run();
