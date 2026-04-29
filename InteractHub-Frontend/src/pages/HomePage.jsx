@@ -9,6 +9,7 @@ import Avatar from "../components/Shared/Avatar";
 import { getPosts, createPost } from "../services/postService";
 import { getTrending } from "../services/hashtagService";
 import { getSuggestions } from "../services/friendService";
+import { getStories } from "../services/storyService";
 
 export default function HomePage() {
   // ✅ Lấy user từ AuthContext thay vì props
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [stories, setStories] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -32,15 +34,16 @@ export default function HomePage() {
   async function loadData() {
     try {
       setLoading(true);
-      const [postsData, trendingData, suggestionData] = await Promise.all([
+      const [postsData, trendingData, suggestionData, storiesData] = await Promise.all([
         getPosts(),
         getTrending(),
         getSuggestions(),
+        getStories(),
       ]);
       // Backend trả về: { posts, totalCount, page, pageSize, totalPages }
       setPosts(postsData.posts || []);
       setTotalPage(postsData.totalPages || 1);
-
+      setStories(storiesData || []);
       setTrending(trendingData.data || []);
       setSuggestions(suggestionData.data || []);
     } catch (err) {
@@ -123,7 +126,7 @@ export default function HomePage() {
 
       <div className="feed-layout">
         <div>
-          <StoryBar onViewStory={setStoryViewer} />
+          <StoryBar stories={stories}  onViewStory={setStoryViewer} />
           <CreatePost currentUser={currentUser} onPost={handlePost} />
           {loading && <div>Đang tải...</div>}
           {Array.isArray(posts) && posts.map(p => (

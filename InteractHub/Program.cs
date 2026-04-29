@@ -25,7 +25,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 
 // ── Đăng ký Services ────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<StoryService>();
+builder.Services.AddScoped<IStoryService, StoryService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 
 // ── JWT Authentication ──────────────────────────────────────────

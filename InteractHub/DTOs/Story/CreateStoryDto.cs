@@ -1,5 +1,3 @@
-namespace InteractHub.DTOs.Story;
-
 public class CreateStoryDto
 {
     public string? TextContent { get; set; }

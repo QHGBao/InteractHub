@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using InteractHub.Model;
-using InteractHub.Data;
 using InteractHub.DTOs.Story;
+using InteractHub.Service;
 
 namespace InteractHub.Controllers;
 
@@ -13,121 +11,60 @@ namespace InteractHub.Controllers;
 [Authorize]
 public class StoryController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IStoryService _storyService;
 
-    public StoryController(AppDbContext context)
+    public StoryController(IStoryService storyService)
     {
-        _context = context;
+        _storyService = storyService;
     }
 
-    // GET /api/stories — lấy tất cả story chưa hết hạn
+    // GET /api/stories — lấy story của chính mình
     [HttpGet]
     public async Task<IActionResult> GetStories()
     {
-        var now = DateTime.UtcNow;
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var stories = await _context.Stories
-            .Include(s => s.Author)
-            .Where(s => s.ExpiresAt > now)
-            .OrderByDescending(s => s.CreatedAt)
-            .Select(s => new
-            {
-                id = s.Id,
-                text = s.TextContent,
-                imageUrl = s.MediaUrl,
-                bg = s.Background ?? "",
-                timeAgo = GetTimeAgo(s.CreatedAt),
-                user = new
-                {
-                    id = s.Author.Id,
-                    displayName = s.Author.DisplayName,
-                    name = s.Author.UserName,
-                    avatarUrl = s.Author.AvatarUrl
-                }
-            })
-            .ToListAsync();
 
-        return Ok(new { success = true, data = stories });
+        var data = await _storyService.GetMyStoriesAsync(userId);
+
+        return Ok(new { success = true, data });
     }
 
-    // POST /api/stories — tạo story mới
+    // GET /api/stories/feed — story bản thân + bạn bè (dùng sau)
+    [HttpGet("feed")]
+    public async Task<IActionResult> GetFeed()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var data = await _storyService.GetFeedStoriesAsync(userId);
+
+        return Ok(new { success = true, data });
+    }
+
+    // POST /api/stories
     [HttpPost]
     public async Task<IActionResult> CreateStory([FromForm] CreateStoryDto dto)
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdValue))
-            return Unauthorized();
-
-        var userId = Guid.Parse(userIdValue);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         if (string.IsNullOrWhiteSpace(dto.TextContent) && dto.Image == null)
-            return BadRequest(new { success = false, message = "Story phải có nội dung hoặc ảnh" });
+            return BadRequest(new { success = false, message = "Cần có nội dung hoặc ảnh" });
 
-        string? imageUrl = null;
+        var result = await _storyService.CreateStoryAsync(userId, dto);
 
-        if (dto.Image != null)
-        {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = Guid.NewGuid() + Path.GetExtension(dto.Image.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await dto.Image.CopyToAsync(stream);
-            }
-
-            imageUrl = $"/uploads/{fileName}";
-        }
-
-        var story = new Story
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            TextContent = dto.TextContent,
-            MediaUrl = imageUrl,
-            Background = dto.Background,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddHours(24)
-        };
-
-        _context.Stories.Add(story);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, data = story });
+        return Ok(new { success = true, data = result });
     }
 
-    // DELETE /api/stories/{id} — xoá story (chỉ chủ story)
+    // DELETE /api/stories/{id}
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteStory(Guid id)
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdValue))
-            return Unauthorized();
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        var userId = Guid.Parse(userIdValue);
+        var ok = await _storyService.DeleteStoryAsync(id, userId);
 
-        var story = await _context.Stories.FindAsync(id);
-        if (story == null)
-            return NotFound(new { success = false, message = "Không tìm thấy story" });
+        if (!ok)
+            return NotFound(new { success = false, message = "Không tìm thấy hoặc không có quyền xoá" });
 
-        if (story.UserId != userId)
-            return Forbid();
-
-        _context.Stories.Remove(story);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, message = "Đã xoá story" });
-    }
-
-    private static string GetTimeAgo(DateTime date)
-    {
-        var span = DateTime.UtcNow - date;
-        if (span.TotalMinutes < 1) return "Vừa xong";
-        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} phút trước";
-        if (span.TotalHours < 24) return $"{(int)span.TotalHours} giờ trước";
-        return $"{(int)span.TotalDays} ngày trước";
+        return Ok(new { success = true });
     }
 }

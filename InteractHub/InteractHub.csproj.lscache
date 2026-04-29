@@ -73,7 +73,10 @@ DTOs/Post/
  PostDto.cs
 DTOs/
  Search/SearchResultDto.cs
- Story/CreateStoryDto.cs
+ Story/
+  CreateStoryDto.cs
+  StoryDto.cs
+ User/UserDto.cs
 Migrations/
  20260420145707_InitialCreate.cs
  20260420145707_InitialCreate.Designer.cs
