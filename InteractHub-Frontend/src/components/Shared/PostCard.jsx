@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Avatar from "./Avatar";
+import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
 import { toggleLike, getComments, addComment, deletePost } from "../../services/postService";
 
@@ -13,6 +14,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [commentText, setCommentText] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ✅ State cho dropdown menu
   const [showMenu, setShowMenu] = useState(false);
@@ -63,7 +67,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   async function handleAddComment() {
     if (!commentText.trim()) return;
-    
+
     try {
       setSubmitting(true);
       const newComment = await addComment(post.id, {
@@ -83,18 +87,18 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   // ✅ Handle delete post
   async function handleDelete() {
-    const confirmed = window.confirm("Bạn có chắc muốn xóa bài viết này?");
-    if (!confirmed) return;
-
     try {
+      setDeleting(true);
+
       await deletePost(post.id);
-      alert("Đã xóa bài viết!");
-      
-      // ✅ Notify parent để remove khỏi list
+      window.location.reload();
+      setShowConfirm(false);
       onDelete && onDelete(post.id);
+
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Xóa bài thất bại!");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -141,7 +145,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
             >
               <button
                 onClick={() => {
-                  handleDelete();
+                  setShowConfirm(true);
                   setShowMenu(false);
                 }}
                 style={{
@@ -303,6 +307,16 @@ export default function PostCard({ post, onUpdate, onDelete }) {
           )}
         </div>
       )}
+      <ConfirmDeleteModal
+            open={showConfirm}
+            title="Xóa bài viết?"
+            description="Bài viết sẽ bị xóa vĩnh viễn và không thể khôi phục."
+            confirmText="Xóa"
+            cancelText="Hủy"
+            loading={deleting}
+            onCancel={() => setShowConfirm(false)}
+            onConfirm={handleDelete}
+          />
     </div>
   );
 }

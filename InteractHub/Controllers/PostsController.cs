@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using InteractHub.Service;
 using InteractHub.Model;
 using InteractHub.Data;
 using InteractHub.DTOs.Post;
@@ -19,11 +20,11 @@ namespace InteractHub.Controllers;
 [Route("api/[controller]")]
 public class PostsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IPostService _postService;
 
-    public PostsController(AppDbContext context)
+    public PostsController(IPostService postService)
     {
-        _context = context;
+        _postService = postService;
     }
 
     // GET /api/posts 
@@ -32,91 +33,17 @@ public class PostsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        var query = _context.Posts
-            .Where(p => !p.IsDeleted)
-            .Include(p => p.Author)
-            .OrderByDescending(p => p.CreatedAt);
-
-        var totalCount = await query.CountAsync();
-
-        var posts = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new
-            {
-                p.Id,
-                p.Content,
-                p.ImageUrl,
-                p.LikesCount,
-                p.CommentsCount,
-                createdAt = p.CreatedAt.ToString("o"), 
-                author = new
-                {
-                    id = p.Author.Id,
-                    userName = p.Author.UserName
-                }
-            })
-            .ToListAsync();
-
-        return Ok(new
-        {
-            posts,
-            totalCount,
-            page,
-            pageSize,
-            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-        });
+        var result = await _postService.GetPosts(page, pageSize);
+        if (result == null) return NotFound(new { message = "Page Not Found" });
+        return Ok(result);
     }
 
     // GET /api/posts/{id}
     [HttpGet("{id}")]
     public async Task<ActionResult<object>> GetPost(Guid id)
     {
-        var post = await _context.Posts
-            .Where(p => p.Id == id && !p.IsDeleted)
-            .Include(p => p.Author)
-            .Include(p => p.Comments.Where(c => !c.IsDeleted))
-                .ThenInclude(c => c.Author)
-            .Include(p => p.Likes)
-                .ThenInclude(l => l.User)
-            .FirstOrDefaultAsync();
-
-        if (post == null)
-            return NotFound(new { message = "Post not found" });
-
-        return Ok(new
-        {
-            id = post.Id,
-            content = post.Content,
-            imageUrl = post.ImageUrl,
-            likesCount = post.LikesCount,
-            commentsCount = post.CommentsCount,
-            createdAt = post.CreatedAt.ToString("o"), // Format ISO 8601
-            author = new
-            {
-                id = post.Author.Id,
-                userName = post.Author.UserName
-            },
-            comments = post.Comments
-                .Where(c => c.ParentCommentId == null)
-                .Select(c => new
-                {
-                    id = c.Id,
-                    content = c.Content,
-                    createdAt = c.CreatedAt.ToString("o"),
-                    author = new
-                    {
-                        id = c.Author.Id,
-                        userName = c.Author.UserName
-                    },
-                    repliesCount = post.Comments.Count(r => r.ParentCommentId == c.Id)
-                }),
-            likes = post.Likes.Select(l => new
-            {
-                id = l.Id,
-                createdAt = l.CreatedAt.ToString("o")
-            })
-        });
+        var result = await _postService.GetPost(id);
+        return Ok(result);
     }
 
     // POST /api/posts
@@ -124,64 +51,27 @@ public class PostsController : ControllerBase
     public async Task<ActionResult> CreatePost([FromBody] CreatePostDto dto)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-        var post = new Post
-        {
-            UserId = userId,
-            Content = dto.Content,
-            ImageUrl = dto.ImageUrl,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Posts.Add(post);
-        await _context.SaveChangesAsync();
-
-        await _context.Entry(post).Reference(p => p.Author).LoadAsync();
-
-        return CreatedAtAction(nameof(GetPost), new { id = post.Id }, new
-        {
-            id = post.Id,
-            content = post.Content,
-            imageUrl = post.ImageUrl,
-            createdAt = post.CreatedAt.ToString("o"),
-            likesCount = post.LikesCount,      
-            commentsCount = post.CommentsCount,
-            author = new
-            {
-                id = post.Author.Id,
-                userName = post.Author.UserName
-            }
-        });
+        var result = await _postService.CreatePost(userId,dto);
+        return CreatedAtAction(nameof(GetPost), new { id = ((dynamic)result).id }, result);
     }
 
     // PUT /api/posts/{id}
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdatePost(Guid id, [FromBody] UpdatePostDto dto)
-    {
-        var post = await _context.Posts.FindAsync(id);
-        if (post == null || post.IsDeleted)
-            return NotFound();
-
-        post.Content = dto.Content;
-        post.ImageUrl = dto.ImageUrl;
-        post.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
+    public async Task<IActionResult> UpdatePost(Guid postId, [FromBody] UpdatePostDto dto)
+    {   
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _postService.UpdatePost(userId , postId, dto);
+        if(!result) return NotFound();
         return NoContent();
     }
 
     // DELETE /api/posts/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeletePost(Guid id)
+    public async Task<IActionResult> DeletePost(Guid postId)
     {
-        var post = await _context.Posts.FindAsync(id);
-        if (post == null || post.IsDeleted)
-            return NotFound();
-
-        post.IsDeleted = true;
-        post.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _postService.DeletePost(userId, postId);
+        if (!result) return NotFound();
         return NoContent();
     }
 }
