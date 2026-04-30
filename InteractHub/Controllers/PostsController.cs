@@ -6,8 +6,11 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using InteractHub.Service;
+using InteractHub.Model;
+using InteractHub.Data;
 using InteractHub.DTOs.Post;
 
 namespace InteractHub.Controllers;
@@ -24,7 +27,7 @@ public class PostsController : ControllerBase
         _postService = postService;
     }
 
-    // GET /api/posts
+    // GET /api/posts 
     [HttpGet]
     public async Task<ActionResult<object>> GetPosts(
         [FromQuery] int page = 1,
@@ -43,38 +46,27 @@ public class PostsController : ControllerBase
         return Ok(result);
     }
 
-    // GET /api/posts/user/{userId}
-    [HttpGet("by-user/{userId}")]
-    public async Task<ActionResult<object>> GetPostsByUser(
-    Guid userId,
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 10)
-    {
-        var result = await _postService.GetPostsByUser(userId, page, pageSize);
-        return Ok(result);
-    }
-
     // POST /api/posts
     [HttpPost]
     public async Task<ActionResult> CreatePost([FromBody] CreatePostDto dto)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _postService.CreatePost(userId, dto);
+        var result = await _postService.CreatePost(userId,dto);
         return CreatedAtAction(nameof(GetPost), new { id = ((dynamic)result).id }, result);
     }
 
     // PUT /api/posts/{id}
-    [HttpPut("{id}")]
+    [HttpPut("{postId}")]
     public async Task<IActionResult> UpdatePost(Guid postId, [FromBody] UpdatePostDto dto)
-    {
+    {   
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _postService.UpdatePost(userId, postId, dto);
-        if (!result) return NotFound();
+        var result = await _postService.UpdatePost(userId , postId, dto);
+        if(!result) return NotFound();
         return NoContent();
     }
 
     // DELETE /api/posts/{id}
-    [HttpDelete("{id}")]
+    [HttpDelete("{postId}")]
     public async Task<IActionResult> DeletePost(Guid postId)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
