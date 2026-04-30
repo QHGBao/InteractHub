@@ -5,8 +5,7 @@ import StoryBar from "../components/Shared/StoryBar";
 import CreatePost from "../components/Shared/CreatePost";
 import PostCard from "../components/Shared/PostCard";
 import Avatar from "../components/Shared/Avatar";
-
-import { getPosts, createPost } from "../services/postService";
+import { postApi } from "../api/postApi";
 import { getTrending } from "../services/hashtagService";
 import { getSuggestions } from "../services/friendService";
 import { getStories } from "../services/storyService";
@@ -27,6 +26,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [stories, setStories] = useState([]);
 
+
   useEffect(() => {
     loadData();
   }, [page]);
@@ -35,7 +35,7 @@ export default function HomePage() {
     try {
       setLoading(true);
       const [postsData, trendingData, suggestionData, storiesData] = await Promise.all([
-        getPosts(),
+        postApi.getPosts(page, 30),
         getTrending(),
         getSuggestions(),
         getStories(),
@@ -49,19 +49,19 @@ export default function HomePage() {
     } catch (err) {
       console.error(err);
       toast("Không tải được dữ liệu", "error");
-    } finally{
+    } finally {
       setLoading(false);
     }
   }
 
   async function handlePost(text, imageUrl = null) {
     try {
-      const newPost = await createPost({
+      const newPost = await postApi.createPost({
         content: text,
         imageUrl: imageUrl, // ← Thêm imageUrl
       });
-      
-      setPosts((p) => [newPost, ...p]);
+
+      setPosts(prev => [newPost, ...prev.slice(0, 29)]);
       toast("Đã đăng bài viết!", "success");
     } catch (err) {
       console.error(err);
@@ -70,12 +70,15 @@ export default function HomePage() {
   }
 
   // Callback để update post khi like/comment
-  function handlePostUpdate(updatedPost){
+  function handlePostUpdate(updatedPost) {
     setPosts(prev => prev.map(p =>
-      p.id === updatedPost.id ? {...p,...updatedPost} : p
+      p.id === updatedPost.id ? { ...p, ...updatedPost } : p
     ));
   }
-
+  function handleDeletePost(postId) {
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    loadData();
+  }
   return (
     <div className="page">
 
@@ -87,7 +90,7 @@ export default function HomePage() {
               <div key={i} style={{
                 flex: 1, height: 3, borderRadius: 2,
                 background: i === 1 ? '#fff' : 'rgba(255,255,255,.3)'
-              }}/>
+              }} />
             ))}
           </div>
 
@@ -126,7 +129,7 @@ export default function HomePage() {
 
       <div className="feed-layout">
         <div>
-          <StoryBar stories={stories}  onViewStory={setStoryViewer} />
+          <StoryBar stories={stories} onViewStory={setStoryViewer} />
           <CreatePost currentUser={currentUser} onPost={handlePost} />
           {loading && <div>Đang tải...</div>}
           {Array.isArray(posts) && posts.map(p => (
@@ -134,11 +137,12 @@ export default function HomePage() {
               key={p.id}
               post={p}
               onUpdate={handlePostUpdate}
+              onDelete={handleDeletePost}
             />
           ))}
           {/* Pagination */}
           {totalPage > 1 && (
-            <div style={{display:`flex`, gap: 8, justifyContent: `center`, marginTop: 16}}>
+            <div style={{ display: `flex`, gap: 8, justifyContent: `center`, marginTop: 16 }}>
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -146,7 +150,7 @@ export default function HomePage() {
               >
                 Trước
               </button>
-              <span style={{ padding: `0 12px`, lineHeight: `32px`}}>
+              <span style={{ padding: `0 12px`, lineHeight: `32px` }}>
                 Trang {page} / {totalPage}
               </span>
               <button
@@ -156,7 +160,7 @@ export default function HomePage() {
               >
                 Sau
               </button>
-              </div>
+            </div>
           )}
         </div>
 

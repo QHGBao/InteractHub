@@ -1,5 +1,5 @@
 // POST   /api/posts/{postId}/like    → Toggle like (like/unlike)
-// GET    /api/posts/{postId}/likes   → Danh sách users đã like
+// GET    /api/posts/{postId}/unlike   → Danh sách users đã like
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +29,7 @@ public class LikesController : ControllerBase{
         return Ok(result);
 
     }
-
+    // GET /api/posts/{postId}/unlike
     [HttpGet("unlike")]
     public async Task<ActionResult<object>> GetLikes(Guid postId){
         var result = await _likeService.GetLikes(postId);

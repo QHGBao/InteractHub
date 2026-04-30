@@ -21,9 +21,7 @@ export default function CommentItem({
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  console.log("Comment author ID:", comment.author?.id);
-  console.log("Current user ID:", currentUserId);
-  console.log("Equal?", String(currentUserId) === String(comment.author?.id));
+
   async function handleSubmitReply() {
     if (!replyText.trim()) return;
 
@@ -41,15 +39,9 @@ export default function CommentItem({
 
   const maxLevel = 2;
   const canReply = level < maxLevel;
-  const isCommentOwner = currentUserId === comment.author?.id;
-  const isPostOwner = currentUserId === postAuthorId;
-
+  const isCommentOwner = String(currentUserId) === String(comment.author?.id);
+  const isPostOwner = String(currentUserId) === String(postAuthorId);
   const canDelete = isCommentOwner || isPostOwner;
-
-  // ✅ Debug: Log để check
-  console.log("Comment author ID:", comment.author?.id);
-  console.log("Current user ID:", currentUserId);
-  console.log("Can delete?", currentUserId === comment.author?.id);
 
   return (
     <div

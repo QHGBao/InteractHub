@@ -2,8 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import Avatar from "./Avatar";
 import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
-import CommentItem from "./CommentItem"; // ✅ Import component mới
-import { toggleLike, getComments, addComment, deletePost, deleteComment } from "../../services/postService";
+import CommentItem from "./CommentItem"; // Import component mới
+
+import { postApi } from "../../api/postApi";
+import { commentApi } from "../../api/commentApi";
+import { likeApi } from "../../api/likeApi";
+
 import { useAuth } from "../../context/AuthContext";
 
 export default function PostCard({ post, onUpdate, onDelete }) {
@@ -28,8 +32,8 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const menuRef = useRef(null);
 
   // Get current user ID (từ AuthContext)
-  const currentUserId = user?.id;
-  console.log("USER:", user);
+  const currentUserId = user.userId;
+  const isPostOwner = String(currentUserId) === String(post.author?.id);
   useEffect(() => {
     if (showComments && comments.length === 0) {
       loadComments();
@@ -52,7 +56,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   async function loadComments() {
     try {
       setLoadingComments(true);
-      const data = await getComments(post.id);
+      const data = await commentApi.getComments(post.id);
       setComments(data || []);
     } catch (err) {
       console.error("Load comments error:", err);
@@ -64,7 +68,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   async function handleLike() {
     try {
-      const result = await toggleLike(post.id);
+      const result = await likeApi.toggleLike(post.id);
       setLiked(result.isLiked);
       setLikesCount(result.likesCount);
       onUpdate && onUpdate({ id: post.id, likesCount: result.likesCount });
@@ -78,7 +82,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
     try {
       setSubmitting(true);
-      const newComment = await addComment(post.id, {
+      await commentApi.createComment(post.id, {
         content: commentText,
         parentCommentId: null,
       });
@@ -95,10 +99,10 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // ✅ Handle reply to comment
+  // Handle reply to comment
   async function handleReplyToComment(parentCommentId, content) {
     try {
-      await addComment(post.id, {
+      await commentApi.createComment(post.id, {
         content,
         parentCommentId,
       });
@@ -130,10 +134,10 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       setDeleting(true);
 
       if (deleteType === "post") {
-        await deletePost(targetId);
+        await postApi.deletePost(targetId);
         onDelete && onDelete(targetId);
       } else if (deleteType === "comment") {
-        await deleteComment(post.id, targetId);
+        await commentApi.deleteComment(post.id, targetId);
         await loadComments();
         setCommentsCount((prev) => prev - 1);
       }
@@ -165,60 +169,61 @@ export default function PostCard({ post, onUpdate, onDelete }) {
             {new Date(post.createdAt).toLocaleString("vi-VN")}
           </div>
         </div>
-
-        <div style={{ position: "relative" }} ref={menuRef}>
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            <Icon name="more" />
-          </button>
-
-          {showMenu && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                right: 0,
-                background: "var(--bg3)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                marginTop: 4,
-                minWidth: 150,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                zIndex: 10,
-              }}
+        {isPostOwner && (
+          <div style={{ position: "relative" }} ref={menuRef}>
+            <button
+              className="btn btn-ghost btn-xs"
+              onClick={() => setShowMenu(!showMenu)}
             >
-              <button
-                onClick={() => {
-                  setShowConfirm(true);
-                  setShowMenu(false);
-                }}
+              <Icon name="more" />
+            </button>
+
+            {showMenu && (
+              <div
                 style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  textAlign: "left",
-                  fontSize: 13,
-                  color: "var(--danger)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "var(--bg3)",
+                  border: "1px solid var(--border)",
                   borderRadius: 8,
-                  transition: "background 0.15s",
+                  marginTop: 4,
+                  minWidth: 150,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  zIndex: 10,
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "var(--bg4)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
               >
-                <Icon name="trash" size={14} />
-                Xóa bài viết
-              </button>
-            </div>
-          )}
-        </div>
+                <button
+                  onClick={() => {
+                    openDeletePost();
+                    setShowMenu(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    color: "var(--danger)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    borderRadius: 8,
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "var(--bg4)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  <Icon name="trash" size={14} />
+                  Xóa bài viết
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content - giữ nguyên */}
