@@ -3,6 +3,7 @@ import Avatar from "./Avatar";
 import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
 import CommentItem from "./CommentItem";
+import ImageLightbox from "./ImageLightBox";
 
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
@@ -33,6 +34,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   const currentUserId = user?.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
 
@@ -48,11 +52,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         setShowMenu(false);
       }
     }
-
     if (showMenu) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showMenu]);
 
@@ -81,14 +83,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   async function handleAddComment() {
     if (!commentText.trim()) return;
-
     try {
       setSubmitting(true);
-      await commentApi.createComment(post.id, {
-        content: commentText,
-        parentCommentId: null,
-      });
-
+      await commentApi.createComment(post.id, { content: commentText, parentCommentId: null });
       await loadComments();
       setCommentsCount((prev) => prev + 1);
       setCommentText("");
@@ -101,11 +98,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   async function handleReplyToComment(parentCommentId, content) {
     try {
-      await commentApi.createComment(post.id, {
-        content,
-        parentCommentId,
-      });
-
+      await commentApi.createComment(post.id, { content, parentCommentId });
       await loadComments();
       setCommentsCount((prev) => prev + 1);
     } catch (err) {
@@ -129,7 +122,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   async function handleConfirmDelete() {
     try {
       setDeleting(true);
-
       if (deleteType === "post") {
         await postApi.deletePost(targetId);
         onDelete && onDelete(targetId);
@@ -138,7 +130,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         await loadComments();
         setCommentsCount((prev) => prev - 1);
       }
-
       setShowConfirm(false);
       setTargetId(null);
       setDeleteType(null);
@@ -149,13 +140,19 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+  const postImages = post.imageUrl
+    ? (post.imageUrl.startsWith('[') ? JSON.parse(post.imageUrl) : [post.imageUrl])
+    : [];
+
+  function openLightbox(index = 0) {
+    setLightboxIndex(index);
+    setShowLightbox(true);
+  }
+
   return (
     <div className="card post-card">
       <div className="post-header">
-        <div
-          onClick={() => navigate(`/profile/${post.author?.id}`)}
-          style={{ cursor: "pointer" }}
-        >
+        <div onClick={() => navigate(`/profile/${post.author?.id}`)} style={{ cursor: "pointer" }}>
           <Avatar user={post.author} />
         </div>
 
@@ -164,56 +161,31 @@ export default function PostCard({ post, onUpdate, onDelete }) {
             style={{ fontWeight: 600, fontSize: 14, cursor: "pointer" }}
             onClick={() => navigate(`/profile/${post.author?.id}`)}
           >
-            {post.author?.userName ||
-              post.author?.displayName ||
-              "Unknown"}
+            {post.author?.userName || post.author?.displayName || "Unknown"}
           </div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>
-            {new Date(post.createdAt).toLocaleString("vi-VN", {
-              timeZone: "Asia/Ho_Chi_Minh",
-            })}
+            {new Date(post.createdAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
           </div>
         </div>
 
         {isPostOwner && (
           <div style={{ position: "relative" }} ref={menuRef}>
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setShowMenu(!showMenu)}
-            >
+            <button className="btn btn-ghost btn-xs" onClick={() => setShowMenu(!showMenu)}>
               <Icon name="more" />
             </button>
-
             {showMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "var(--bg3)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  marginTop: 4,
-                  minWidth: 150,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                  zIndex: 10,
-                }}
-              >
+              <div style={{
+                position: "absolute", top: "100%", right: 0,
+                background: "var(--bg3)", border: "1px solid var(--border)",
+                borderRadius: 8, marginTop: 4, minWidth: 150,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)", zIndex: 10,
+              }}>
                 <button
-                  onClick={() => {
-                    openDeletePost();
-                    setShowMenu(false);
-                  }}
+                  onClick={() => { openDeletePost(); setShowMenu(false); }}
                   style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    color: "var(--danger)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    borderRadius: 8,
+                    width: "100%", padding: "10px 14px", textAlign: "left",
+                    fontSize: 13, color: "var(--danger)", display: "flex",
+                    alignItems: "center", gap: 8, borderRadius: 8,
                   }}
                 >
                   <Icon name="trash" size={14} />
@@ -225,82 +197,80 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         )}
       </div>
 
-      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>
-        {post.content}
-      </p>
+      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>{post.content}</p>
 
-      {post.imageUrl && (
-        <img
-          src={post.imageUrl}
-          alt="Post"
-          style={{ width: "100%", borderRadius: 8, marginBottom: 12 }}
-        />
+      {postImages.length > 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: postImages.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+          gap: 4, marginBottom: 12, borderRadius: 8, overflow: 'hidden'
+        }}>
+          {postImages.slice(0, 4).map((img, index) => (
+            <div key={index} onClick={() => openLightbox(index)}
+              style={{
+                position: 'relative',
+                height: postImages.length === 1 ? 400 : 200,
+                cursor: 'pointer', overflow: 'hidden'
+              }}>
+              <img src={img} alt={`Post image ${index + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
+              />
+              {index === 3 && postImages.length > 4 && (
+                <div style={{
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 32, fontWeight: 700
+                }}>
+                  +{postImages.length - 4}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          paddingTop: 12,
-          borderTop: "1px solid var(--border)",
-        }}
-      >
-        <button
-          onClick={handleLike}
-          className="btn btn-ghost btn-sm"
-          style={{ color: liked ? "#e74c3c" : "inherit" }}
-        >
+      <div style={{ display: "flex", gap: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        <button onClick={handleLike} className="btn btn-ghost btn-sm"
+          style={{ color: liked ? "#e74c3c" : "inherit" }}>
           {liked ? "❤️" : "🤍"} {likesCount}
         </button>
-
-        <button
-          onClick={() => setShowComments((prev) => !prev)}
-          className="btn btn-ghost btn-sm"
-        >
+        <button onClick={() => setShowComments((prev) => !prev)} className="btn btn-ghost btn-sm">
           💬 {commentsCount}
         </button>
-
         <button className="btn btn-ghost btn-sm">🔗 Chia sẻ</button>
       </div>
 
       {showComments && (
         <div style={{ marginTop: 12 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Viết bình luận..."
-              style={{ flex: 1 }}
+            <input value={commentText} onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Viết bình luận..." style={{ flex: 1 }}
+              onKeyPress={(e) => e.key === "Enter" && handleAddComment()}
             />
-            <button onClick={handleAddComment}>Gửi</button>
+            <button onClick={handleAddComment} disabled={!commentText.trim() || submitting}
+              className="btn btn-primary btn-sm">
+              {submitting ? "..." : "Gửi"}
+            </button>
           </div>
-
           {comments.map((c) => (
-            <CommentItem
-              key={c.id}
-              comment={c}
-              postId={post.id}
-              onReply={handleReplyToComment}
-              onDelete={handleDeleteComment}
-              currentUserId={currentUserId}
-              postAuthorId={post.author?.id}
-              level={0}
+            <CommentItem key={c.id} comment={c} postId={post.id}
+              onReply={handleReplyToComment} onDelete={handleDeleteComment}
+              currentUserId={currentUserId} postAuthorId={post.author?.id} level={0}
             />
           ))}
         </div>
       )}
 
+      {showLightbox && (
+        <ImageLightbox images={postImages} initialIndex={lightboxIndex}
+          onClose={() => setShowLightbox(false)} />
+      )}
+
       <ConfirmDeleteModal
         open={showConfirm}
-        title={
-          deleteType === "post"
-            ? "Xóa bài viết?"
-            : "Xóa bình luận?"
-        }
+        title={deleteType === "post" ? "Xóa bài viết?" : "Xóa bình luận?"}
         description="Không thể khôi phục nếu xác nhận xóa."
-        confirmText="Xóa"
-        cancelText="Hủy"
-        loading={deleting}
+        confirmText="Xóa" cancelText="Hủy" loading={deleting}
         onCancel={() => setShowConfirm(false)}
         onConfirm={handleConfirmDelete}
       />

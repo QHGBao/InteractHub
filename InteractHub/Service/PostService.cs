@@ -4,9 +4,11 @@ using InteractHub.Model;
 using Microsoft.EntityFrameworkCore;
 
 namespace InteractHub.Service;
+
 public class PostService : IPostService
 {
     public readonly AppDbContext _context;
+    
     public PostService(AppDbContext context)
     {
         _context = context;
@@ -15,35 +17,37 @@ public class PostService : IPostService
     public async Task<object> GetPosts(int page, int pageSize)
     {
         var query = _context.Posts
-                    .Where(p => !p.IsDeleted)
-                    .Include(p => p.Author)
-                    .OrderByDescending(c => c.CreatedAt);
+            .Where(p => !p.IsDeleted)
+            .Include(p => p.Author)
+            .OrderByDescending(c => c.CreatedAt);
+            
         var totalCount = await query.CountAsync();
 
         var posts = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new
-            {
-                p.Id,
-                p.Content,
-                p.ImageUrl,
-                p.LikesCount,
-                p.CommentsCount,
-                createdAt = p.CreatedAt.ToString("o"),
-                author = new
-                {
-                    id          = p.Author.Id,
-                    userName    = p.Author.UserName,
-                    displayName = p.Author.DisplayName,
-                    avatarUrl   = p.Author.AvatarUrl
-                }
-            })
             .ToListAsync();
+
+        var formattedPosts = posts.Select(p => new
+        {
+            p.Id,
+            p.Content,
+            p.ImageUrl,
+            p.LikesCount,
+            p.CommentsCount,
+            createdAt = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            author = new
+            {
+                id          = p.Author.Id,
+                userName    = p.Author.UserName,
+                displayName = p.Author.DisplayName,
+                avatarUrl   = p.Author.AvatarUrl
+            }
+        }).ToList();
 
         return new
         {
-            posts,
+            posts = formattedPosts,
             totalCount,
             page,
             pageSize,
@@ -54,25 +58,24 @@ public class PostService : IPostService
     public async Task<object?> GetPost(Guid id)
     {
         var post = await _context.Posts
-                    .Where(p => p.Id == id && !p.IsDeleted)
-                    .Include(p => p.Comments.Where(c => !c.IsDeleted))
-                        .ThenInclude(c => c.Author)
-                    .Include(p => p.Author)
-                    .Include(p => p.Likes)
-                        .ThenInclude(l => l.User)
-                    .FirstOrDefaultAsync();
-        if (post == null)
-        {
-            return null;
-        }
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .Include(p => p.Comments.Where(c => !c.IsDeleted))
+                .ThenInclude(c => c.Author)
+            .Include(p => p.Author)
+            .Include(p => p.Likes)
+                .ThenInclude(l => l.User)
+            .FirstOrDefaultAsync();
+            
+        if (post == null) return null;
+
         return new
         {
             id            = post.Id,
             content       = post.Content,
-            image         = post.ImageUrl,
+            imageUrl      = post.ImageUrl,
             likesCount    = post.LikesCount,
             commentsCount = post.CommentsCount,
-            createdAt     = post.CreatedAt.ToString("o"),
+            createdAt     = DateTime.SpecifyKind(post.CreatedAt, DateTimeKind.Utc).ToString("o"),
             author = new
             {
                 id          = post.Author.Id,
@@ -86,7 +89,7 @@ public class PostService : IPostService
                 {
                     id        = c.Id,
                     content   = c.Content,
-                    createdAt = c.CreatedAt.ToString("o"),
+                    createdAt = DateTime.SpecifyKind(c.CreatedAt, DateTimeKind.Utc).ToString("o"),
                     author = new
                     {
                         id          = c.Author.Id,
@@ -99,7 +102,7 @@ public class PostService : IPostService
             likes = post.Likes.Select(l => new
             {
                 id        = l.Id,
-                createdAt = l.CreatedAt.ToString("o")
+                createdAt = DateTime.SpecifyKind(l.CreatedAt, DateTimeKind.Utc).ToString("o")
             })
         };
     }
@@ -113,15 +116,17 @@ public class PostService : IPostService
             ImageUrl  = dto.ImageUrl,
             CreatedAt = DateTime.UtcNow
         };
+        
         _context.Add(post);
         await _context.SaveChangesAsync();
         await _context.Entry(post).Reference(p => p.Author).LoadAsync();
+        
         return new
         {
             id            = post.Id,
             content       = post.Content,
             imageUrl      = post.ImageUrl,
-            createdAt     = post.CreatedAt.ToString("o"),
+            createdAt     = DateTime.SpecifyKind(post.CreatedAt, DateTimeKind.Utc).ToString("o"),
             likesCount    = post.LikesCount,
             commentsCount = post.CommentsCount,
             author = new
@@ -173,27 +178,28 @@ public class PostService : IPostService
         var posts = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new
-            {
-                p.Id,
-                p.Content,
-                p.ImageUrl,
-                p.LikesCount,
-                p.CommentsCount,
-                createdAt = p.CreatedAt.ToString("o"),
-                author = new
-                {
-                    id          = p.Author.Id,
-                    userName    = p.Author.UserName,
-                    displayName = p.Author.DisplayName,
-                    avatarUrl   = p.Author.AvatarUrl
-                }
-            })
             .ToListAsync();
+
+        var formattedPosts = posts.Select(p => new
+        {
+            p.Id,
+            p.Content,
+            p.ImageUrl,
+            p.LikesCount,
+            p.CommentsCount,
+            createdAt = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            author = new
+            {
+                id          = p.Author.Id,
+                userName    = p.Author.UserName,
+                displayName = p.Author.DisplayName,
+                avatarUrl   = p.Author.AvatarUrl
+            }
+        }).ToList();
 
         return new
         {
-            posts,
+            posts = formattedPosts,
             totalCount,
             page,
             pageSize,
