@@ -24,15 +24,26 @@ const TEXT_SHADOWS = {
 };
 
 // ─── Tính timeAgo từ createdAt ───────────────────────────────────
-// StoryDto không có field timeAgo — tính trên frontend
 function getTimeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1)  return "Vừa xong";
-  if (mins < 60) return `${mins} phút trước`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs  < 24) return `${hrs} giờ trước`;
-  return `${Math.floor(hrs / 24)} ngày trước`;
+  const date = new Date(dateStr);
+  if (isNaN(date)) return "";
+
+  const diff = Date.now() - date.getTime();
+
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 5) return "Vừa xong";
+  if (seconds < 60) return `${seconds} giây trước`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} phút trước`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ngày trước`;
+
+  return date.toLocaleDateString("vi-VN");
 }
 
 // ─── Luminance utilities ─────────────────────────────────────────

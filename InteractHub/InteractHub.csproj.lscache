@@ -89,8 +89,8 @@ DTOs/
   UserProfileDto.cs
 Hubs/NotificationHub.cs
 Migrations/
- 20260420145707_InitialCreate.cs
- 20260420145707_InitialCreate.Designer.cs
+ 20260429145750_InitDb.cs
+ 20260429145750_InitDb.Designer.cs
  AppDbContextModelSnapshot.cs
 Model/
  ApplicationUser.cs

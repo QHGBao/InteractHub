@@ -4,6 +4,7 @@ namespace InteractHub.Service;
 
 public interface ISearchService
 {
-    Task<IEnumerable<UserSearchResultDto>> SearchUsersAsync(string query);
+    // currentUserId dùng để biết bản thân và trạng thái kết bạn
+    Task<IEnumerable<UserSearchResultDto>> SearchUsersAsync(string query, Guid currentUserId);
     Task<IEnumerable<PostSearchResultDto>> SearchPostsAsync(string query);
 }

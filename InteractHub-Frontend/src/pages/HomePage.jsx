@@ -9,7 +9,7 @@ import Avatar from "../components/Shared/Avatar";
 import { getPosts, createPost } from "../services/postService";
 import { getTrending } from "../services/hashtagService";
 import { getSuggestions } from "../services/friendService";
-import { getStories } from "../services/storyService";
+import { getFeedStories } from "../services/storyService";
 
 export default function HomePage() {
   // ✅ Lấy user từ AuthContext thay vì props
@@ -38,7 +38,7 @@ export default function HomePage() {
         getPosts(),
         getTrending(),
         getSuggestions(),
-        getStories(),
+        getFeedStories(),
       ]);
       // Backend trả về: { posts, totalCount, page, pageSize, totalPages }
       setPosts(postsData.posts || []);
@@ -161,7 +161,7 @@ export default function HomePage() {
         </div>
 
         <div className="right-col">
-          <div className="card widget" style={{ marginBottom: 12 }}>
+          <div className="card widget" style={{ marginBottom:12 }}>
             <div className="widget-title">📈 Trending</div>
             {Array.isArray(trending) && trending.map((t, i) => (
               <div key={t.id ?? i} className="trend-item">
@@ -173,23 +173,19 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-
+ 
           <div className="card widget">
             <div className="widget-title">👥 Gợi ý kết bạn</div>
             {Array.isArray(suggestions) && suggestions.map(u => (
-              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div key={u.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                 <Avatar user={u} size="sm" />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>
-                    {u.displayName || u.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                    {u.mutual} bạn chung
-                  </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:600 }}>{u.displayName || u.name}</div>
+                  <div style={{ fontSize:11, color:"var(--text3)" }}>{u.mutual} bạn chung</div>
                 </div>
                 <button
                   className="btn btn-ghost btn-xs"
-                  onClick={() => toast(`Đã gửi lời mời đến ${u.displayName || u.name}!`, 'success')}
+                  onClick={() => toast(`Đã gửi lời mời đến ${u.displayName || u.name}!`, "success")}
                 >
                   +
                 </button>
