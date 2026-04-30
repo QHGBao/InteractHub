@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
@@ -8,18 +8,28 @@ import Icon from "../components/Shared/Icon";
 import PostCard from "../components/Shared/PostCard";
 
 import { getUserProfile, getUserPosts } from "../services/userService";
+import { updateProfile, uploadImage } from "../api/userApi";
 import { sendRequest, unfriend } from "../api/friendApi";
+
+import CreatePost from "../components/Shared/CreatePost";
+import { createPost } from "../services/postService";
+import AboutTab from "../components/Shared/AboutTab";
+import PhotosTab from "../components/Shared/PhotosTab";
 
 export default function ProfilePage() {
   const { userId } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, updateUser } = useAuth();
   const app = useApp();
 
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [tab, setTab] = useState("posts");
-  const [editMode, setEditMode] = useState(false);
   const [friendStatus, setFriendStatus] = useState("None");
+
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const isOwn = currentUser?.userId === userId || currentUser?.id === userId;
 
@@ -28,31 +38,69 @@ export default function ProfilePage() {
   }, [userId]);
 
   async function loadProfile() {
-    console.log("loadProfile called, userId:", userId);
     try {
       const [profileRes, postsRes] = await Promise.all([
         getUserProfile(userId),
-        getUserPosts(userId).catch((err) => { 
-          console.log("getUserPosts error:", err);
-          return { data: { posts: [] } };
-        })
+        getUserPosts(userId).catch(() => ({ posts: [] }))
       ]);
-
-      console.log("profileRes:", profileRes);
-      console.log("postsRes:", postsRes);
 
       setUser(profileRes.data?.profile || profileRes.data);
       setFriendStatus(profileRes.data?.friendStatus || "None");
-      
-      const postsData = postsRes.posts || postsRes.data?.posts || [];
-      console.log("postsData:", postsData);
-      setPosts(postsData);
+      setPosts(postsRes.posts || postsRes.data?.posts || []);
 
     } catch (err) {
-      console.error("loadProfile error:", err);
+      console.error(err);
       app.toast("Không tải được hồ sơ", "error");
     }
-}
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingAvatar(true);
+      const uploaded = await uploadImage(file);
+      const imageUrl = `http://localhost:5022${uploaded.url}`;
+      await updateProfile({ avatarUrl: imageUrl });
+      updateUser({ avatarUrl: imageUrl });
+      app.toast("Đã cập nhật ảnh đại diện!");
+      loadProfile();
+    } catch (err) {
+      console.error(err);
+      app.toast("Lỗi upload ảnh", "error");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function handleCoverChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingCover(true);
+      const uploaded = await uploadImage(file);
+      const imageUrl = `http://localhost:5022${uploaded.url}`;
+      await updateProfile({ coverUrl: imageUrl });
+      app.toast("Đã cập nhật ảnh bìa!");
+      loadProfile();
+    } catch (err) {
+      console.error(err);
+      app.toast("Lỗi upload ảnh", "error");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
+  async function handlePost(text, imageUrl = null) {
+    try {
+      await createPost({ content: text, imageUrl });
+      app.toast("Đã đăng bài viết!", "success");
+      loadProfile();
+    } catch (err) {
+      console.error(err);
+      app.toast("Đăng bài thất bại", "error");
+    }
+  }
 
   if (!user) return <div className="page">Đang tải...</div>;
 
@@ -61,12 +109,35 @@ export default function ProfilePage() {
 
       {/* Cover */}
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
-        <div className="profile-cover">
-          <div className="profile-cover-inner" />
+        <div className="profile-cover" style={{ position: 'relative' }}>
+          {user.coverUrl ? (
+            <img
+              src={user.coverUrl}
+              alt="cover"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div className="profile-cover-inner" />
+          )}
           {isOwn && (
-            <button className="btn btn-ghost btn-sm" style={{ position: 'absolute', bottom: 12, right: 12 }}>
-              <Icon name="camera" size={14} /> Đổi ảnh bìa
-            </button>
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                ref={coverInputRef}
+                style={{ display: 'none' }}
+                onChange={handleCoverChange}
+              />
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ position: 'absolute', bottom: 12, right: 12 }}
+                onClick={() => coverInputRef.current.click()}
+                disabled={uploadingCover}
+              >
+                <Icon name="camera" size={14} />
+                {uploadingCover ? " Đang upload..." : " Đổi ảnh bìa"}
+              </button>
+            </>
           )}
         </div>
 
@@ -76,13 +147,28 @@ export default function ProfilePage() {
             <div style={{ position: 'relative' }}>
               <Avatar user={user} size="xl" />
               {isOwn && (
-                <button style={{
-                  position: 'absolute', bottom: 0, right: 0, width: 28, height: 28,
-                  borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
-                }}>
-                  <Icon name="camera" size={12} />
-                </button>
+                <>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={avatarInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleAvatarChange}
+                  />
+                  <button
+                    onClick={() => avatarInputRef.current.click()}
+                    disabled={uploadingAvatar}
+                    style={{
+                      position: 'absolute', bottom: 0, right: 0,
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: 'var(--accent)', border: '2px solid var(--bg2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', cursor: 'pointer'
+                    }}
+                  >
+                    <Icon name="camera" size={12} />
+                  </button>
+                </>
               )}
             </div>
 
@@ -102,7 +188,7 @@ export default function ProfilePage() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               {isOwn ? (
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditMode(true)}>
+                <button className="btn btn-ghost btn-sm">
                   <Icon name="edit" size={14} /> Chỉnh sửa
                 </button>
               ) : (
@@ -152,9 +238,7 @@ export default function ProfilePage() {
               ['Tham gia', user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A']
             ].map(([k, v]) => (
               <div key={k}>
-                <div style={{ fontFamily: 'var(--font-head)', fontSize: 18, fontWeight: 700 }}>
-                  {v}
-                </div>
+                <div style={{ fontFamily: 'var(--font-head)', fontSize: 18, fontWeight: 700 }}>{v}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{k}</div>
               </div>
             ))}
@@ -165,11 +249,7 @@ export default function ProfilePage() {
 
       {/* Tabs */}
       <div className="tab-bar" style={{ maxWidth: 360 }}>
-        {[
-          ['posts', 'Bài viết'],
-          ['photos', 'Ảnh'],
-          ['about', 'Giới thiệu']
-        ].map(([k, v]) => (
+        {[['posts', 'Bài viết'], ['photos', 'Ảnh'], ['about', 'Giới thiệu']].map(([k, v]) => (
           <div key={k} className={`tab-btn ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>
             {v}
           </div>
@@ -177,38 +257,48 @@ export default function ProfilePage() {
       </div>
 
       {tab === 'posts' && (
-        posts.length > 0
-          ? posts.map(p => (
-            <PostCard
-              key={p.Id || p.id}
-              post={{
-                ...p,
-                id: p.Id || p.id,
-                imageUrl: p.ImageUrl || p.imageUrl,
-                content: p.Content || p.content,
-                likesCount: p.LikesCount || p.likesCount || 0,
-                commentsCount: p.CommentsCount || p.commentsCount || 0,
-                createdAt: p.createdAt,
-                author: p.author
-              }}
-              onUpdate={() => loadProfile()}
-              onDelete={() => loadProfile()}
-            />
-          ))
-          : (
-            <div className="empty">
-              <div className="empty-icon">📝</div>
-              <div className="empty-text">Chưa có bài viết nào</div>
-            </div>
-          )
+        <>
+          {isOwn && (
+            <CreatePost currentUser={currentUser} onPost={handlePost} />
+          )}
+          {posts.length > 0
+            ? posts.map(p => (
+              <PostCard
+                key={p.Id || p.id}
+                post={{
+                  ...p,
+                  id: p.Id || p.id,
+                  imageUrl: p.ImageUrl || p.imageUrl,
+                  content: p.Content || p.content,
+                  likesCount: p.LikesCount || p.likesCount || 0,
+                  commentsCount: p.CommentsCount || p.commentsCount || 0,
+                  createdAt: p.createdAt,
+                  author: p.author
+                }}
+                onUpdate={() => loadProfile()}
+                onDelete={() => loadProfile()}
+              />
+            ))
+            : (
+              <div className="empty">
+                <div className="empty-icon">📝</div>
+                <div className="empty-text">Chưa có bài viết nào</div>
+              </div>
+            )
+          }
+        </>
+      )}
+
+      {tab === 'photos' && (
+        <PhotosTab posts={posts} />
       )}
 
       {tab === 'about' && (
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
-            {user.bio || "Chưa có giới thiệu"}
-          </div>
-        </div>
+        <AboutTab
+          user={user}
+          isOwn={isOwn}
+          onUpdate={loadProfile}
+        />
       )}
 
     </div>

@@ -33,8 +33,10 @@ public class PostService : IPostService
                 createdAt = p.CreatedAt.ToString("o"),
                 author = new
                 {
-                    id = p.Author.Id,
-                    userName = p.Author.UserName
+                    id          = p.Author.Id,
+                    userName    = p.Author.UserName,
+                    displayName = p.Author.DisplayName,
+                    avatarUrl   = p.Author.AvatarUrl
                 }
             })
             .ToListAsync();
@@ -65,34 +67,38 @@ public class PostService : IPostService
         }
         return new
         {
-            id = post.Id,
-            content = post.Content,
-            image = post.ImageUrl,
-            likesCount = post.LikesCount,
+            id            = post.Id,
+            content       = post.Content,
+            image         = post.ImageUrl,
+            likesCount    = post.LikesCount,
             commentsCount = post.CommentsCount,
-            createdAt = post.CreatedAt.ToString("o"),
+            createdAt     = post.CreatedAt.ToString("o"),
             author = new
             {
-                id = post.Author.Id,
-                userName = post.Author.UserName
+                id          = post.Author.Id,
+                userName    = post.Author.UserName,
+                displayName = post.Author.DisplayName,
+                avatarUrl   = post.Author.AvatarUrl
             },
             comments = post.Comments
                 .Where(c => c.ParentCommentId == null)
                 .Select(c => new
                 {
-                    id = c.Id,
-                    content = c.Content,
+                    id        = c.Id,
+                    content   = c.Content,
                     createdAt = c.CreatedAt.ToString("o"),
                     author = new
                     {
-                        id = c.Author.Id,
-                        userName = c.Author.UserName
+                        id          = c.Author.Id,
+                        userName    = c.Author.UserName,
+                        displayName = c.Author.DisplayName,
+                        avatarUrl   = c.Author.AvatarUrl
                     },
                     repliesCount = post.Comments.Count(r => r.ParentCommentId == c.Id)
                 }),
             likes = post.Likes.Select(l => new
             {
-                id = l.Id,
+                id        = l.Id,
                 createdAt = l.CreatedAt.ToString("o")
             })
         };
@@ -102,9 +108,9 @@ public class PostService : IPostService
     {
         var post = new Post
         {
-            UserId = userId,
-            Content = dto.Content,
-            ImageUrl = dto.ImageUrl,
+            UserId    = userId,
+            Content   = dto.Content,
+            ImageUrl  = dto.ImageUrl,
             CreatedAt = DateTime.UtcNow
         };
         _context.Add(post);
@@ -112,16 +118,18 @@ public class PostService : IPostService
         await _context.Entry(post).Reference(p => p.Author).LoadAsync();
         return new
         {
-            id = post.Id,
-            content = post.Content,
-            imageUrl = post.ImageUrl,
-            createdAt = post.CreatedAt.ToString("o"),
-            likesCount = post.LikesCount,
+            id            = post.Id,
+            content       = post.Content,
+            imageUrl      = post.ImageUrl,
+            createdAt     = post.CreatedAt.ToString("o"),
+            likesCount    = post.LikesCount,
             commentsCount = post.CommentsCount,
             author = new
             {
-                id = post.Author.Id,
-                userName = post.Author.UserName
+                id          = post.Author.Id,
+                userName    = post.Author.UserName,
+                displayName = post.Author.DisplayName,
+                avatarUrl   = post.Author.AvatarUrl
             }
         };
     }
@@ -132,8 +140,8 @@ public class PostService : IPostService
         if (post == null || post.IsDeleted || userId != post.UserId)
             return false;
 
-        post.Content = dto.Content;
-        post.ImageUrl = dto.ImageUrl;
+        post.Content   = dto.Content;
+        post.ImageUrl  = dto.ImageUrl;
         post.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -175,8 +183,10 @@ public class PostService : IPostService
                 createdAt = p.CreatedAt.ToString("o"),
                 author = new
                 {
-                    id       = p.Author.Id,
-                    userName = p.Author.UserName
+                    id          = p.Author.Id,
+                    userName    = p.Author.UserName,
+                    displayName = p.Author.DisplayName,
+                    avatarUrl   = p.Author.AvatarUrl
                 }
             })
             .ToListAsync();

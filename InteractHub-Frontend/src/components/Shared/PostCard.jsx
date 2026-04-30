@@ -3,11 +3,13 @@ import Avatar from "./Avatar";
 import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
 import { toggleLike, getComments, addComment, deletePost } from "../../services/postService";
+import { useNavigate } from "react-router-dom";
 
 export default function PostCard({ post, onUpdate, onDelete }) {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
+  const navigate = useNavigate();
 
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -106,13 +108,15 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     <div className="card post-card">
       {/* Header */}
       <div className="post-header">
-        <Avatar user={post.author} />
+        <div onClick={() => navigate(`/profile/${post.author?.id}`)} style={{ cursor: "pointer" }}>
+          <Avatar user={post.author} />
+        </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>
-            {post.author?.userName ||
-              post.author?.displayName ||
-              post.author?.name ||
-              "Unknown"}
+          <div
+            style={{ fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+            onClick={() => navigate(`/profile/${post.author?.id}`)}
+          >
+            {post.author?.userName || post.author?.displayName || "Unknown"}
           </div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>
             {new Date(post.createdAt).toLocaleString("vi-VN")}
@@ -308,15 +312,15 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         </div>
       )}
       <ConfirmDeleteModal
-            open={showConfirm}
-            title="Xóa bài viết?"
-            description="Bài viết sẽ bị xóa vĩnh viễn và không thể khôi phục."
-            confirmText="Xóa"
-            cancelText="Hủy"
-            loading={deleting}
-            onCancel={() => setShowConfirm(false)}
-            onConfirm={handleDelete}
-          />
+        open={showConfirm}
+        title="Xóa bài viết?"
+        description="Bài viết sẽ bị xóa vĩnh viễn và không thể khôi phục."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        loading={deleting}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

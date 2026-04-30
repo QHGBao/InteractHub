@@ -14,6 +14,9 @@ public class ApplicationUser : IdentityUser<Guid>
     [MaxLength(500)]
     public string? AvatarUrl { get; set; }
 
+    [MaxLength(500)]
+    public string? CoverUrl { get; set; }
+
     [MaxLength(300)]
     public string? Bio { get; set; }
 
@@ -23,6 +26,16 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [MaxLength(200)]
+    public string? School { get; set; }
+
+    [MaxLength(10)]
+    public string? Gender { get; set; }  // "male" / "female" / "other"
+
+    // Lưu tối đa 5 links dạng JSON string
+    [MaxLength(1000)]
+    public string? SocialLinks { get; set; }
 
     // Navigation properties
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();

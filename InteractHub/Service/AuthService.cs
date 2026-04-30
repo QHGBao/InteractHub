@@ -110,6 +110,7 @@ public class AuthService : IAuthService
             UserName = user.UserName!,
             Email = user.Email!,
             DisplayName = user.DisplayName,
+            AvatarUrl = user.AvatarUrl,
             Role = role,
             ExpiresAt = expiresAt
         };
