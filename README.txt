@@ -16,3 +16,10 @@ http://localhost:5173 để mở giao diện web
 ===chạy lại migration===
 dotnet ef database drop
 dotnet ef database update
+
+=== quy trình chuẩn sau khi pull về, nếu database có sửa đổi như thêm bảng, thêm cột===
+git pull
+sửa các file bị conflict
+dotnet ef database update (để cập nhật sql)
+dotnet run
+npm run dev
