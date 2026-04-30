@@ -13,37 +13,66 @@ public class SearchService : ISearchService
         _context = context;
     }
 
-    public async Task<IEnumerable<UserSearchResultDto>> SearchUsersAsync(string query)
+    // ─────────────────────────────────────────────
+    // SEARCH USERS
+    // Trả về:
+    //   - IsSelf = true nếu là chính mình
+    //   - FriendshipStatus: null / "Pending" / "Accepted"
+    // ─────────────────────────────────────────────
+    public async Task<IEnumerable<UserSearchResultDto>> SearchUsersAsync(string query, Guid currentUserId)
     {
         var q = query.Trim().ToLower();
 
-        return await _context.Users
+        var users = await _context.Users
             .Where(u => u.IsActive &&
                 (u.DisplayName.ToLower().Contains(q) ||
                  (u.UserName != null && u.UserName.ToLower().Contains(q)) ||
                  (u.Bio      != null && u.Bio.ToLower().Contains(q))))
             .OrderBy(u => u.DisplayName)
-            .Take(20)
-            .Select(u => new UserSearchResultDto
+            .Take(30)
+            .Select(u => new { u.Id, u.DisplayName, u.UserName, u.AvatarUrl, u.Bio })
+            .ToListAsync();
+
+        if (!users.Any()) return Enumerable.Empty<UserSearchResultDto>();
+
+        // Lấy toàn bộ friendship liên quan đến currentUser và các user tìm được
+        var userIds = users.Select(u => u.Id).ToList();
+
+        var friendships = await _context.Friendships
+            .Where(f =>
+                (f.RequesterId == currentUserId && userIds.Contains(f.AddresseeId)) ||
+                (f.AddresseeId == currentUserId && userIds.Contains(f.RequesterId)))
+            .Select(f => new
             {
-                Id          = u.Id,
-                DisplayName = u.DisplayName,
-                UserName    = u.UserName,
-                AvatarUrl   = u.AvatarUrl,
-                Bio         = u.Bio,
+                OtherId = f.RequesterId == currentUserId ? f.AddresseeId : f.RequesterId,
+                f.Status
             })
             .ToListAsync();
+
+        var friendshipMap = friendships.ToDictionary(f => f.OtherId, f => f.Status);
+
+        return users.Select(u => new UserSearchResultDto
+        {
+            Id          = u.Id,
+            DisplayName = u.DisplayName,
+            UserName    = u.UserName,
+            AvatarUrl   = u.AvatarUrl,
+            Bio         = u.Bio,
+            IsSelf      = u.Id == currentUserId,
+            FriendshipStatus = friendshipMap.TryGetValue(u.Id, out var status) ? status : null
+        });
     }
 
+    // ─────────────────────────────────────────────
+    // SEARCH POSTS — theo nội dung
+    // ─────────────────────────────────────────────
     public async Task<IEnumerable<PostSearchResultDto>> SearchPostsAsync(string query)
     {
         var q = query.Trim().ToLower();
 
         return await _context.Posts
             .Include(p => p.Author)
-            .Include(p => p.Likes)
-            .Include(p => p.Comments)
-            .Where(p => p.Content != null && p.Content.ToLower().Contains(q))
+            .Where(p => p.Content.ToLower().Contains(q))
             .OrderByDescending(p => p.CreatedAt)
             .Take(20)
             .Select(p => new PostSearchResultDto
@@ -51,10 +80,10 @@ public class SearchService : ISearchService
                 Id            = p.Id,
                 Content       = p.Content,
                 ImageUrl      = p.ImageUrl,
-                TimeAgo       = GetTimeAgo(p.CreatedAt),
-                LikesCount    = p.Likes.Count,
-                CommentsCount = p.Comments.Count,
-                User = new UserSearchResultDto
+                CreatedAt     = p.CreatedAt,
+                LikesCount    = p.LikesCount,
+                CommentsCount = p.CommentsCount,
+                Author = new UserSearchResultDto
                 {
                     Id          = p.Author.Id,
                     DisplayName = p.Author.DisplayName,

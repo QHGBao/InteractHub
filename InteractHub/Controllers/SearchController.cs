@@ -1,6 +1,7 @@
 using InteractHub.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace InteractHub.Controllers;
 
@@ -23,7 +24,9 @@ public class SearchController : ControllerBase
         if (string.IsNullOrWhiteSpace(q))
             return Ok(new { success = true, data = Array.Empty<object>() });
 
-        var results = await _searchService.SearchUsersAsync(q);
+        var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var results = await _searchService.SearchUsersAsync(q, currentUserId);
         return Ok(new { success = true, data = results });
     }
 

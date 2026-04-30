@@ -4,13 +4,9 @@ import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
 import CommentItem from "./CommentItem";
 
-import {
-  toggleLike,
-  getComments,
-  addComment,
-  deletePost,
-  deleteComment,
-} from "../../services/postService";
+import { postApi } from "../../api/postApi";
+import { commentApi } from "../../api/commentApi";
+import { likeApi } from "../../api/likeApi";
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -29,16 +25,16 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // delete state
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteType, setDeleteType] = useState(null); // "post" | "comment"
+  const [deleteType, setDeleteType] = useState(null);
   const [targetId, setTargetId] = useState(null);
 
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
-  const currentUserId = user?.id;
+  const currentUserId = user?.userId;
+  const isPostOwner = String(currentUserId) === String(post.author?.id);
 
   useEffect(() => {
     if (showComments && comments.length === 0) {
@@ -63,7 +59,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   async function loadComments() {
     try {
       setLoadingComments(true);
-      const data = await getComments(post.id);
+      const data = await commentApi.getComments(post.id);
       setComments(data || []);
     } catch (err) {
       console.error("Load comments error:", err);
@@ -74,7 +70,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   async function handleLike() {
     try {
-      const result = await toggleLike(post.id);
+      const result = await likeApi.toggleLike(post.id);
       setLiked(result.isLiked);
       setLikesCount(result.likesCount);
       onUpdate && onUpdate({ id: post.id, likesCount: result.likesCount });
@@ -88,7 +84,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
     try {
       setSubmitting(true);
-      await addComment(post.id, {
+      await commentApi.createComment(post.id, {
         content: commentText,
         parentCommentId: null,
       });
@@ -105,7 +101,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   async function handleReplyToComment(parentCommentId, content) {
     try {
-      await addComment(post.id, {
+      await commentApi.createComment(post.id, {
         content,
         parentCommentId,
       });
@@ -118,7 +114,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // DELETE
   function openDeletePost() {
     setDeleteType("post");
     setTargetId(post.id);
@@ -136,10 +131,10 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       setDeleting(true);
 
       if (deleteType === "post") {
-        await deletePost(targetId);
+        await postApi.deletePost(targetId);
         onDelete && onDelete(targetId);
       } else if (deleteType === "comment") {
-        await deleteComment(post.id, targetId);
+        await commentApi.deleteComment(post.id, targetId);
         await loadComments();
         setCommentsCount((prev) => prev - 1);
       }
@@ -156,7 +151,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   return (
     <div className="card post-card">
-      {/* Header */}
       <div className="post-header">
         <div
           onClick={() => navigate(`/profile/${post.author?.id}`)}
@@ -175,59 +169,62 @@ export default function PostCard({ post, onUpdate, onDelete }) {
               "Unknown"}
           </div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>
-            {new Date(post.createdAt).toLocaleString("vi-VN")}
+            {new Date(post.createdAt).toLocaleString("vi-VN", {
+              timeZone: "Asia/Ho_Chi_Minh",
+            })}
           </div>
         </div>
 
-        <div style={{ position: "relative" }} ref={menuRef}>
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            <Icon name="more" />
-          </button>
-
-          {showMenu && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                right: 0,
-                background: "var(--bg3)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                marginTop: 4,
-                minWidth: 150,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                zIndex: 10,
-              }}
+        {isPostOwner && (
+          <div style={{ position: "relative" }} ref={menuRef}>
+            <button
+              className="btn btn-ghost btn-xs"
+              onClick={() => setShowMenu(!showMenu)}
             >
-              <button
-                onClick={() => {
-                  openDeletePost();
-                  setShowMenu(false);
-                }}
+              <Icon name="more" />
+            </button>
+
+            {showMenu && (
+              <div
                 style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  textAlign: "left",
-                  fontSize: 13,
-                  color: "var(--danger)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "var(--bg3)",
+                  border: "1px solid var(--border)",
                   borderRadius: 8,
+                  marginTop: 4,
+                  minWidth: 150,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  zIndex: 10,
                 }}
               >
-                <Icon name="trash" size={14} />
-                Xóa bài viết
-              </button>
-            </div>
-          )}
-        </div>
+                <button
+                  onClick={() => {
+                    openDeletePost();
+                    setShowMenu(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    color: "var(--danger)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Icon name="trash" size={14} />
+                  Xóa bài viết
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Content */}
       <p style={{ margin: "12px 0", lineHeight: 1.5 }}>
         {post.content}
       </p>
@@ -240,7 +237,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         />
       )}
 
-      {/* Actions */}
       <div
         style={{
           display: "flex",
@@ -267,7 +263,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         <button className="btn btn-ghost btn-sm">🔗 Chia sẻ</button>
       </div>
 
-      {/* Comments */}
       {showComments && (
         <div style={{ marginTop: 12 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
