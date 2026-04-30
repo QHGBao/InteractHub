@@ -3,6 +3,7 @@ import Avatar from "./Avatar";
 import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
 import CommentItem from "./CommentItem"; // Import component mới
+import ImageLightbox from "./ImageLightBox";
 
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
@@ -34,6 +35,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   // Get current user ID (từ AuthContext)
   const currentUserId = user.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
+
+  const [showLightbox, setShowLightbox] = useState(false); // ← Add
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   useEffect(() => {
     if (showComments && comments.length === 0) {
       loadComments();
@@ -151,7 +155,14 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       setDeleting(false);
     }
   }
+  const postImages = post.imageUrl
+    ? (post.imageUrl.startsWith('[') ? JSON.parse(post.imageUrl) : [post.imageUrl])
+    : [];
 
+  function openLightbox(index = 0) {
+    setLightboxIndex(index);
+    setShowLightbox(true);
+  }
 
   return (
     <div className="card post-card">
@@ -210,12 +221,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
                     borderRadius: 8,
                     transition: "background 0.15s",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "var(--bg4)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
                 >
                   <Icon name="trash" size={14} />
                   Xóa bài viết
@@ -226,15 +231,57 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         )}
       </div>
 
-      {/* Content - giữ nguyên */}
-      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>{post.content}</p>
+      {/* Images Grid */}
+      {postImages.length > 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: postImages.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+          gap: 4,
+          marginBottom: 12,
+          borderRadius: 8,
+          overflow: 'hidden'
+        }}>
+          {postImages.slice(0, 4).map((img, index) => (
+            <div
+              key={index}
+              onClick={() => openLightbox(index)}
+              style={{
+                position: 'relative',
+                height: postImages.length === 1 ? 400 : 200,
+                cursor: 'pointer',
+                overflow: 'hidden'
+              }}
+            >
+              <img
+                src={img}
+                alt={`Post image ${index + 1}`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transition: 'transform 0.2s'
+                }}
+              />
 
-      {post.imageUrl && (
-        <img
-          src={post.imageUrl}
-          alt="Post"
-          style={{ width: "100%", borderRadius: 8, marginBottom: 12 }}
-        />
+              {/* More overlay */}
+              {index === 3 && postImages.length > 4 && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontSize: 32,
+                  fontWeight: 700
+                }}>
+                  +{postImages.length - 4}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Actions - giữ nguyên */}
@@ -331,7 +378,14 @@ export default function PostCard({ post, onUpdate, onDelete }) {
           )}
         </div>
       )}
-
+      {/* Lightbox */}
+      {showLightbox && (
+        <ImageLightbox
+          images={postImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setShowLightbox(false)}
+        />
+      )}
       <ConfirmDeleteModal
         open={showConfirm}
         title={

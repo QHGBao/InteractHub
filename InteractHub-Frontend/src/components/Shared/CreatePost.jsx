@@ -1,34 +1,34 @@
 import { useState } from "react";
 import Avatar from "./Avatar";
 import ImageUpload from "./ImageUpload";
-import { uploadImage } from "../../services/uploadService";
+import { uploadMultipleImages } from "../../services/uploadService";
 
 export default function CreatePost({ currentUser, onPost }) {
   const [text, setText] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
 
   async function handlePost() {
-    if (!text.trim() && !imageFile) return;
+    if (!text.trim() && imageFiles.length === 0) return;
 
     try {
       setLoading(true);
 
-      let finalImageUrl = null;
+      let imageUrls = null;
 
       // Upload ảnh nếu có
-      if (imageFile) {
-        const uploadResult = await uploadImage(imageFile);
-        finalImageUrl = `http://localhost:5022${uploadResult.url}`;
+      if (imageFiles.length > 0) {
+        const urls = await uploadMultipleImages(imageFiles);
+        imageUrls = JSON.stringify(urls); // ← Convert to JSON string
       }
 
-      await onPost(text, finalImageUrl);
+      await onPost(text, imageUrls);
 
       // Reset
       setText("");
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
     } catch (err) {
       console.error(err);
       alert("Đăng bài thất bại!");
@@ -37,19 +37,24 @@ export default function CreatePost({ currentUser, onPost }) {
     }
   }
 
-  function handleImageSelect(file) {
-    setImageFile(file);
+  function handleImagesSelect(files) {
+    setImageFiles(files);
     
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    // Tạo previews cho tất cả ảnh
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then(setImagePreviews);
   }
 
-  function handleImageRemove() {
-    setImageFile(null);
-    setImagePreview(null);
+  function handleRemoveImage(index) {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -70,9 +75,9 @@ export default function CreatePost({ currentUser, onPost }) {
 
       {/* Image Preview */}
       <ImageUpload
-        onImageSelect={handleImageSelect}
-        onRemove={handleImageRemove}
-        preview={imagePreview}
+        onImagesSelect={handleImagesSelect}
+        onRemove={handleRemoveImage}
+        previews={imagePreviews}
       />
 
       <div className="create-post-actions">
@@ -80,8 +85,8 @@ export default function CreatePost({ currentUser, onPost }) {
         <button
           className="btn btn-primary btn-sm"
           onClick={handlePost}
-          disabled={(!text.trim() && !imageFile) || loading}
-          style={{ opacity: (text.trim() || imageFile) && !loading ? 1 : 0.5 }}
+          disabled={(!text.trim() && imageFiles.length === 0) || loading}
+          style={{ opacity: (text.trim() || imageFiles.length > 0) && !loading ? 1 : 0.5 }}
         >
           {loading ? "Đang đăng..." : "Đăng"}
         </button>
