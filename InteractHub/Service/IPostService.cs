@@ -7,4 +7,5 @@ public interface IPostService{
     Task<object> CreatePost(Guid userId,CreatePostDto dto);
     Task<bool> UpdatePost(Guid userId, Guid postId,UpdatePostDto dto);
     Task<bool> DeletePost(Guid userId, Guid postId);
+    Task<object> GetPostsByUser(Guid userId, int page, int pageSize);
 }

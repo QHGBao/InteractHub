@@ -7,6 +7,6 @@ export const getUserProfile = async (userId) => {
 };
 
 export const getUserPosts = async (userId) => {
-  const res = await axiosInstance.get(`/post/user/${userId}`);
+  const res = await axiosInstance.get(`/posts/by-user/${userId}`);
   return res.data;
 };

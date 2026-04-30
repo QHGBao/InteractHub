@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InteractHub.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260420145707_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260429145750_InitDb")]
+    partial class InitDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

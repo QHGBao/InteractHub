@@ -11,6 +11,7 @@ public class PostService : IPostService
     {
         _context = context;
     }
+
     public async Task<object> GetPosts(int page, int pageSize)
     {
         var query = _context.Posts
@@ -69,7 +70,7 @@ public class PostService : IPostService
             image = post.ImageUrl,
             likesCount = post.LikesCount,
             commentsCount = post.CommentsCount,
-            createdAt = post.CreatedAt.ToString("o"), // Format ISO 8601
+            createdAt = post.CreatedAt.ToString("o"),
             author = new
             {
                 id = post.Author.Id,
@@ -97,12 +98,14 @@ public class PostService : IPostService
         };
     }
 
-    public async Task<object> CreatePost(Guid userId, CreatePostDto dto){
-        var post = new Post{
+    public async Task<object> CreatePost(Guid userId, CreatePostDto dto)
+    {
+        var post = new Post
+        {
             UserId = userId,
             Content = dto.Content,
             ImageUrl = dto.ImageUrl,
-            CreatedAt = DateTime.UtcNow 
+            CreatedAt = DateTime.UtcNow
         };
         _context.Add(post);
         await _context.SaveChangesAsync();
@@ -113,7 +116,7 @@ public class PostService : IPostService
             content = post.Content,
             imageUrl = post.ImageUrl,
             createdAt = post.CreatedAt.ToString("o"),
-            likesCount = post.LikesCount,      
+            likesCount = post.LikesCount,
             commentsCount = post.CommentsCount,
             author = new
             {
@@ -122,7 +125,9 @@ public class PostService : IPostService
             }
         };
     }
-    public async Task<bool> UpdatePost(Guid userId, Guid postId, UpdatePostDto dto){
+
+    public async Task<bool> UpdatePost(Guid userId, Guid postId, UpdatePostDto dto)
+    {
         var post = await _context.Posts.FindAsync(postId);
         if (post == null || post.IsDeleted || userId != post.UserId)
             return false;
@@ -135,7 +140,8 @@ public class PostService : IPostService
         return true;
     }
 
-    public async Task<bool> DeletePost(Guid userId, Guid postId){
+    public async Task<bool> DeletePost(Guid userId, Guid postId)
+    {
         var post = await _context.Posts.FindAsync(postId);
         if (post == null || post.IsDeleted || userId != post.UserId)
             return false;
@@ -145,5 +151,43 @@ public class PostService : IPostService
 
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<object> GetPostsByUser(Guid userId, int page, int pageSize)
+    {
+        var query = _context.Posts
+            .Where(p => p.UserId == userId && !p.IsDeleted)
+            .Include(p => p.Author)
+            .OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new
+            {
+                p.Id,
+                p.Content,
+                p.ImageUrl,
+                p.LikesCount,
+                p.CommentsCount,
+                createdAt = p.CreatedAt.ToString("o"),
+                author = new
+                {
+                    id       = p.Author.Id,
+                    userName = p.Author.UserName
+                }
+            })
+            .ToListAsync();
+
+        return new
+        {
+            posts,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
     }
 }

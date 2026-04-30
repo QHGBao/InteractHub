@@ -12,3 +12,7 @@ npm run dev
 - Sau khi chạy thành công: truy cập:
 http://localhost:5173 để mở giao diện web
 => Frontend hiển thị giao diện
+
+===chạy lại migration===
+dotnet ef database drop
+dotnet ef database update

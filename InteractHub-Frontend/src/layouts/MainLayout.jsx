@@ -14,6 +14,7 @@ const PAGE_TITLES = {
   '/stories': 'Stories',
   '/notifications': 'Thông báo',
   '/settings': 'Cài đặt',
+  '/profile': 'Trang cá nhân',
   '/search': 'Tìm kiếm',
 };
 
