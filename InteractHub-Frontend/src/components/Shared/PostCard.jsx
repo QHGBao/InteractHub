@@ -262,8 +262,12 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       )}
 
       {showLightbox && (
-        <ImageLightbox images={postImages} initialIndex={lightboxIndex}
-          onClose={() => setShowLightbox(false)} />
+        <ImageLightbox
+          images={postImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setShowLightbox(false)}
+          post={post}  // 👈 thêm dòng này
+        />
       )}
 
       <ConfirmDeleteModal

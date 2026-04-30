@@ -3,10 +3,24 @@ import PostCard from "./PostCard";
 
 export default function PhotosTab({ posts }) {
     const [selectedPost, setSelectedPost] = useState(null);
+    const [selectedImgUrl, setSelectedImgUrl] = useState(null);
 
-    const photoPosts = posts.filter(p => p.imageUrl || p.ImageUrl);
+    // Tách từng ảnh ra thành item riêng
+    const photoItems = [];
+    posts.forEach(p => {
+        const raw = p.imageUrl || p.ImageUrl;
+        if (!raw) return;
 
-    if (photoPosts.length === 0) {
+        const urls = raw.startsWith('[')
+            ? JSON.parse(raw)
+            : [raw];
+
+        urls.forEach(url => {
+            photoItems.push({ post: p, url });
+        });
+    });
+
+    if (photoItems.length === 0) {
         return (
             <div className="card" style={{ padding: 24, textAlign: "center" }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
@@ -17,27 +31,25 @@ export default function PhotosTab({ posts }) {
 
     return (
         <>
-            {/* Grid ảnh */}
             <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
                 gap: 4,
                 marginBottom: 16
             }}>
-                {photoPosts.map((p, i) => (
+                {photoItems.map(({ post: p, url }, i) => (
                     <div
-                        key={p.id || p.Id || i}
-                        onClick={() => setSelectedPost(p)}
+                        key={i}
+                        onClick={() => { setSelectedPost(p); setSelectedImgUrl(url); }}
                         style={{
                             aspectRatio: "1",
                             overflow: "hidden",
                             cursor: "pointer",
                             borderRadius: 4,
-                            position: "relative"
                         }}
                     >
                         <img
-                            src={p.imageUrl || p.ImageUrl}
+                            src={url}
                             alt=""
                             style={{
                                 width: "100%",
@@ -52,45 +64,35 @@ export default function PhotosTab({ posts }) {
                 ))}
             </div>
 
-            {/* Modal */}
             {selectedPost && (
                 <div
                     onClick={() => setSelectedPost(null)}
                     style={{
-                        position: "fixed",
-                        inset: 0,
+                        position: "fixed", inset: 0,
                         background: "rgba(0,0,0,0.95)",
-                        zIndex: 1000,
-                        display: "flex"
+                        zIndex: 1000, display: "flex"
                     }}
                 >
                     {/* Ảnh */}
                     <div
                         style={{
-                            flex: 2,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
+                            flex: 2, display: "flex",
+                            alignItems: "center", justifyContent: "center",
                             background: "#000"
                         }}
                         onClick={e => e.stopPropagation()}
                     >
                         <img
-                            src={selectedPost.imageUrl || selectedPost.ImageUrl}
+                            src={selectedImgUrl}
                             alt=""
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain"
-                            }}
+                            style={{ width: "100%", height: "100%", objectFit: "contain" }}
                         />
                     </div>
 
                     {/* Sidebar */}
                     <div
                         style={{
-                            width: 380,
-                            background: "var(--bg2)",
+                            width: 380, background: "var(--bg2)",
                             overflowY: "auto",
                             borderLeft: "1px solid rgba(255,255,255,0.1)"
                         }}
@@ -100,7 +102,7 @@ export default function PhotosTab({ posts }) {
                             post={{
                                 ...selectedPost,
                                 id: selectedPost.id || selectedPost.Id,
-                                imageUrl: null,
+                                imageUrl: selectedPost.imageUrl || selectedPost.ImageUrl,
                                 content: selectedPost.content || selectedPost.Content,
                                 likesCount: selectedPost.likesCount || selectedPost.LikesCount || 0,
                                 commentsCount: selectedPost.commentsCount || selectedPost.CommentsCount || 0,
@@ -114,21 +116,12 @@ export default function PhotosTab({ posts }) {
                     <button
                         onClick={() => setSelectedPost(null)}
                         style={{
-                            position: "fixed", // 🔥 đổi từ absolute → fixed
-                            top: 20,
-                            left: 20,
-                            width: 44,
-                            height: 44,
-                            borderRadius: "50%",
-                            background: "rgba(0,0,0,0.6)",
-                            color: "#fff",
-                            fontSize: 22,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            border: "none",
-                            zIndex: 2000 // 🔥 đảm bảo luôn nổi trên cùng
+                            position: "fixed", top: 20, left: 20,
+                            width: 44, height: 44, borderRadius: "50%",
+                            background: "rgba(0,0,0,0.6)", color: "#fff",
+                            fontSize: 22, display: "flex",
+                            alignItems: "center", justifyContent: "center",
+                            cursor: "pointer", border: "none", zIndex: 2000
                         }}
                     >
                         ✕
