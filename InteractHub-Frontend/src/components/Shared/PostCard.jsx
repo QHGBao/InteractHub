@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import Avatar from "./Avatar";
 import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
-import { toggleLike, getComments, addComment, deletePost } from "../../services/postService";
+import CommentItem from "./CommentItem"; // ✅ Import component mới
+import { toggleLike, getComments, addComment, deletePost, deleteComment } from "../../services/postService";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PostCard({ post, onUpdate, onDelete }) {
+  const { user } = useAuth();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
@@ -15,20 +18,24 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // delete state chung
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteType, setDeleteType] = useState(null); // "post" | "comment"
+  const [targetId, setTargetId] = useState(null);
 
-  // ✅ State cho dropdown menu
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
+  // Get current user ID (từ AuthContext)
+  const currentUserId = user?.id;
+  console.log("USER:", user);
   useEffect(() => {
     if (showComments && comments.length === 0) {
       loadComments();
     }
   }, [showComments]);
 
-  // ✅ Close menu khi click bên ngoài
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -54,6 +61,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+
   async function handleLike() {
     try {
       const result = await toggleLike(post.id);
@@ -74,7 +82,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         content: commentText,
         parentCommentId: null,
       });
-      setComments((prev) => [newComment, ...prev]);
+
+      // Reload comments để lấy structure mới
+      await loadComments();
       setCommentsCount((prev) => prev + 1);
       setCommentText("");
       onUpdate && onUpdate({ id: post.id, commentsCount: commentsCount + 1 });
@@ -85,16 +95,52 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // ✅ Handle delete post
-  async function handleDelete() {
+  // ✅ Handle reply to comment
+  async function handleReplyToComment(parentCommentId, content) {
+    try {
+      await addComment(post.id, {
+        content,
+        parentCommentId,
+      });
+
+      // Reload comments
+      await loadComments();
+      setCommentsCount((prev) => prev + 1);
+    } catch (err) {
+      console.error("Reply error:", err);
+      throw err;
+    }
+  }
+
+  // ================= DELETE LOGIC =================
+  function openDeletePost() {
+    setDeleteType("post");
+    setTargetId(post.id);
+    setShowConfirm(true);
+  }
+
+  function handleDeleteComment(commentId) {
+    setDeleteType("comment");
+    setTargetId(commentId);
+    setShowConfirm(true);
+  }
+
+  async function handleConfirmDelete() {
     try {
       setDeleting(true);
 
-      await deletePost(post.id);
-      window.location.reload();
-      setShowConfirm(false);
-      onDelete && onDelete(post.id);
+      if (deleteType === "post") {
+        await deletePost(targetId);
+        onDelete && onDelete(targetId);
+      } else if (deleteType === "comment") {
+        await deleteComment(post.id, targetId);
+        await loadComments();
+        setCommentsCount((prev) => prev - 1);
+      }
 
+      setShowConfirm(false);
+      setTargetId(null);
+      setDeleteType(null);
     } catch (err) {
       console.error("Delete error:", err);
     } finally {
@@ -102,9 +148,10 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+
   return (
     <div className="card post-card">
-      {/* Header */}
+      {/* Header - giữ nguyên */}
       <div className="post-header">
         <Avatar user={post.author} />
         <div style={{ flex: 1 }}>
@@ -119,7 +166,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
           </div>
         </div>
 
-        {/* ✅ Dropdown menu */}
         <div style={{ position: "relative" }} ref={menuRef}>
           <button
             className="btn btn-ghost btn-xs"
@@ -175,10 +221,9 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - giữ nguyên */}
       <p style={{ margin: "12px 0", lineHeight: 1.5 }}>{post.content}</p>
 
-      {/* Image */}
       {post.imageUrl && (
         <img
           src={post.imageUrl}
@@ -187,7 +232,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         />
       )}
 
-      {/* Actions */}
+      {/* Actions - giữ nguyên */}
       <div
         style={{
           display: "flex",
@@ -214,7 +259,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         <button className="btn btn-ghost btn-sm">🔗 Chia sẻ</button>
       </div>
 
-      {/* Comments Section */}
+      {/* ✅ Comments Section - ĐÃ SỬA */}
       {showComments && (
         <div
           style={{
@@ -223,6 +268,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
             borderTop: "1px solid var(--border)",
           }}
         >
+          {/* Add root comment */}
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input
               type="text"
@@ -249,6 +295,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
             </button>
           </div>
 
+          {/* Comments list */}
           {loadingComments ? (
             <div
               style={{ textAlign: "center", padding: 16, color: "var(--text3)" }}
@@ -262,61 +309,38 @@ export default function PostCard({ post, onUpdate, onDelete }) {
               Chưa có bình luận nào
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
               {comments.map((comment) => (
-                <div key={comment.id} style={{ display: "flex", gap: 8 }}>
-                  <Avatar user={comment.author} size="xs" />
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        background: "var(--bg2)",
-                        padding: "8px 12px",
-                        borderRadius: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 13,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {comment.author?.userName || "Unknown"}
-                      </div>
-                      <div style={{ fontSize: 13 }}>{comment.content}</div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text3)",
-                        marginTop: 4,
-                        paddingLeft: 12,
-                      }}
-                    >
-                      {new Date(comment.createdAt).toLocaleString("vi-VN")}
-                      {comment.repliesCount > 0 && (
-                        <span style={{ marginLeft: 12 }}>
-                          {comment.repliesCount} phản hồi
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  postId={post.id}
+                  onReply={handleReplyToComment}
+                  onDelete={handleDeleteComment}
+                  currentUserId={currentUserId}
+                  postAuthorId={post.author?.id}
+                  level={0}
+                />
               ))}
             </div>
           )}
         </div>
       )}
+
       <ConfirmDeleteModal
-            open={showConfirm}
-            title="Xóa bài viết?"
-            description="Bài viết sẽ bị xóa vĩnh viễn và không thể khôi phục."
-            confirmText="Xóa"
-            cancelText="Hủy"
-            loading={deleting}
-            onCancel={() => setShowConfirm(false)}
-            onConfirm={handleDelete}
-          />
+        open={showConfirm}
+        title={
+          deleteType === "post"
+            ? "Xóa bài viết?"
+            : "Xóa bình luận?"
+        }
+        description="Không thể khôi phục nếu xác nhận xóa."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        loading={deleting}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
