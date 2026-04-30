@@ -51,17 +51,17 @@ public class PostsController : ControllerBase
     public async Task<ActionResult> CreatePost([FromBody] CreatePostDto dto)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _postService.CreatePost(userId,dto);
+        var result = await _postService.CreatePost(userId, dto);
         return CreatedAtAction(nameof(GetPost), new { id = ((dynamic)result).id }, result);
     }
 
     // PUT /api/posts/{id}
     [HttpPut("{postId}")]
     public async Task<IActionResult> UpdatePost(Guid postId, [FromBody] UpdatePostDto dto)
-    {   
+    {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _postService.UpdatePost(userId , postId, dto);
-        if(!result) return NotFound();
+        var result = await _postService.UpdatePost(userId, postId, dto);
+        if (!result) return NotFound();
         return NoContent();
     }
 
@@ -73,5 +73,16 @@ public class PostsController : ControllerBase
         var result = await _postService.DeletePost(userId, postId);
         if (!result) return NotFound();
         return NoContent();
+    }
+
+    // GET /api/posts/by-user/{userId}
+    [HttpGet("by-user/{userId}")]
+    public async Task<ActionResult<object>> GetPostsByUser(
+        Guid userId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _postService.GetPostsByUser(userId, page, pageSize);
+        return Ok(result);
     }
 }
