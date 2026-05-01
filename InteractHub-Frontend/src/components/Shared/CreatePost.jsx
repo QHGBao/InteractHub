@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import Avatar from "./Avatar";
+import Icon from "./Icon";
 import ImageUpload from "./ImageUpload";
 import RichText from "./RichText";
 import SuggestionDropdown from "./SuggestionDropdown";
@@ -11,6 +12,8 @@ export default function CreatePost({ currentUser, onPost }) {
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  const fileInputRef = useRef(null); // ← Ref cho input
 
   // ── Hashtag / Mention ──
   const textareaRef = useRef(null);
@@ -72,6 +75,7 @@ export default function CreatePost({ currentUser, onPost }) {
 
   return (
     <div className="card create-post" style={{ marginBottom: 12 }}>
+      {/* Textarea */}
       <div className="create-post-input">
         <Avatar user={currentUser} />
         {/* Chỉ thêm ref + handler + dropdown, giữ nguyên class */}
@@ -111,10 +115,24 @@ export default function CreatePost({ currentUser, onPost }) {
         onImagesSelect={handleImagesSelect}
         onRemove={handleRemoveImage}
         previews={imagePreviews}
+        fileInputRef={fileInputRef}
       />
 
+      {/* ✅ Actions: Nút Ảnh (trái) và Nút Đăng (phải) */}
       <div className="create-post-actions">
+        {/* Nút Ảnh - BÊN TRÁI */}
+        <label 
+          htmlFor="image-upload-input" 
+          className="create-icon-btn" 
+          style={{ cursor: 'pointer' }}
+        >
+          <Icon name="image" size={15} /> Ảnh
+        </label>
+
+        {/* Spacer */}
         <div style={{ flex: 1 }} />
+
+        {/* Nút Đăng - BÊN PHẢI */}
         <button
           className="btn btn-primary btn-sm"
           onClick={handlePost}

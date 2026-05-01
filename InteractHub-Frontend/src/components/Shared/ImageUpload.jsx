@@ -1,8 +1,13 @@
-import { useState, useRef } from "react";
-import Icon from "./Icon";
+import { useRef } from "react";
 
-export default function ImageUpload({ onImagesSelect, onRemove, previews = [] }) {
-  const fileInputRef = useRef(null);
+export default function ImageUpload({ 
+  onImagesSelect, 
+  onRemove, 
+  previews = [],
+  fileInputRef // ← Nhận ref từ parent
+}) {
+  const internalRef = useRef(null);
+  const inputRef = fileInputRef || internalRef;
 
   function handleFileSelect(e) {
     const files = Array.from(e.target.files);
@@ -19,6 +24,7 @@ export default function ImageUpload({ onImagesSelect, onRemove, previews = [] })
       }
       return true;
     });
+
     if (validFiles.length > 0) {
       onImagesSelect && onImagesSelect(validFiles);
     }
@@ -29,24 +35,20 @@ export default function ImageUpload({ onImagesSelect, onRemove, previews = [] })
   }
 
   return (
-    <div>
-      {previews.length === 0 ? (
-        <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            style={{ display: "none" }}
-            id="image-upload-input"
-          />
-          
-          <label htmlFor="image-upload-input" className="create-icon-btn" style={{ cursor: 'pointer' }}>
-            <Icon name="image" size={15} /> Ảnh
-          </label>
-        </>
-      ) : (
+    <>
+      {/* Hidden file input */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileSelect}
+        style={{ display: "none" }}
+        id="image-upload-input"
+      />
+
+      {/* Preview grid - CHỈ HIỂN THỊ KHI CÓ ẢNH */}
+      {previews.length > 0 && (
         <div style={{
           display: "grid",
           gridTemplateColumns: previews.length === 1 ? '1fr' : 'repeat(2, 1fr)',
@@ -89,6 +91,6 @@ export default function ImageUpload({ onImagesSelect, onRemove, previews = [] })
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -7,6 +7,7 @@ import ImageLightbox from "./ImageLightBox";
 import RichText from "./RichText";
 import SuggestionDropdown from "./SuggestionDropdown";
 
+import { getUserProfile } from "../../api/userApi";
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
 import { likeApi } from "../../api/likeApi";
@@ -29,6 +30,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // delete state chung
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteType, setDeleteType] = useState(null);
@@ -49,7 +51,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const currentUserId = user?.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
 
-  // Giữ nguyên hoàn toàn
   useEffect(() => {
     if (showComments && comments.length === 0) {
       loadComments();
