@@ -5,6 +5,7 @@ import Icon from "./Icon";
 import CommentItem from "./CommentItem"; // Import component mới
 import ImageLightbox from "./ImageLightBox";
 
+import { getUserProfile } from "../../api/userApi";
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
 import { likeApi } from "../../api/likeApi";
@@ -23,6 +24,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [postAuthor, setPostAuthor] = useState(null);
   // delete state chung
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -35,6 +37,25 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   // Get current user ID (từ AuthContext)
   const currentUserId = user.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
+
+  useEffect(() => {
+  async function fetchPostAuthor() {
+    try {
+      const res = await getUserProfile(post.author?.id);
+      const profile = res?.data?.data?.profile;
+
+      if (profile) {
+        setPostAuthor(profile);
+      }
+    } catch (err) {
+      console.error("Fetch author error:", err);
+    }
+  }
+
+  if (post.author?.id) {
+    fetchPostAuthor();
+  }
+}, [post.author?.id]);
 
   const [showLightbox, setShowLightbox] = useState(false); // ← Add
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -168,7 +189,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     <div className="card post-card">
       {/* Header - giữ nguyên */}
       <div className="post-header">
-        <Avatar user={post.author} />
+        <Avatar user={postAuthor} />
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>
             {post.author?.userName ||
