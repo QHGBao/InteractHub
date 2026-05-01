@@ -55,7 +55,7 @@ export default function HomePage() {
       const newPost = await postApi.createPost({ content: text, imageUrl });
       setPosts((prev) => [newPost, ...prev.slice(0, 29)]);
       toast("Đã đăng bài viết!", "success");
-      await loadData();
+      loadData();
     } catch (err) {
       console.error(err);
       toast("Đăng bài thất bại", "error");
@@ -73,7 +73,6 @@ export default function HomePage() {
     loadData();
   }
 
-  // Tính max cho trending bar
   const trendingMax =
     trending.length > 0
       ? Math.max(...trending.map((t) => t.postCount ?? t.count ?? 0))
@@ -167,7 +166,7 @@ export default function HomePage() {
 
         {/* Left: Feed */}
         <div>
-          <StoryBar stories={stories} onViewStory={setStoryViewer} />
+          <StoryBar stories={stories} onViewStory={setStoryViewer} onReload={loadData}/>
           <CreatePost currentUser={currentUser} onPost={handlePost} />
 
           {loading && (

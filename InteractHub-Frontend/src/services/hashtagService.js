@@ -21,3 +21,10 @@ export const searchHashtags = async (q) => {
   const res = await axiosInstance.get(`${API}/search?q=${encodeURIComponent(q)}`);
   return res.data?.data || [];
 };
+
+export const getPostsByHashtag = async (tag, page = 1, pageSize = 20) => {
+  const res = await axiosInstance.get(
+    `${API}/${encodeURIComponent(tag)}/posts?page=${page}&pageSize=${pageSize}`
+  );
+  return res.data;
+};

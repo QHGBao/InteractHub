@@ -8,4 +8,5 @@ public interface IHashtagService
     Task<List<HashtagDto>> GetFollowedAsync(Guid userId);
     Task<FollowHashtagResultDto> ToggleFollowAsync(Guid userId, Guid hashtagId);
     Task<List<HashtagDto>> SearchAsync(string query, Guid userId);
+    Task<object> GetPostsByHashtagAsync(string tag, int page, int pageSize);
 }

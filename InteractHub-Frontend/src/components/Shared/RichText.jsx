@@ -1,6 +1,12 @@
 // Render nội dung post/comment với #hashtag màu xanh và @mention màu tím
+// Nhấn #hashtag → /hashtag/tênhashtag
+// Nhấn @mention → /profile/tênuser
+
+import { useNavigate } from "react-router-dom";
 
 export default function RichText({ text, style = {} }) {
+  const navigate = useNavigate();
+
   if (!text) return null;
 
   // Tách text thành các token: #hashtag, @mention, và text thường
@@ -10,7 +16,6 @@ export default function RichText({ text, style = {} }) {
   let match;
 
   while ((match = regex.exec(text)) !== null) {
-    // Phần text thường trước token
     if (match.index > lastIndex) {
       parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
     }
@@ -25,9 +30,24 @@ export default function RichText({ text, style = {} }) {
     lastIndex = regex.lastIndex;
   }
 
-  // Phần text còn lại
   if (lastIndex < text.length) {
     parts.push({ type: "text", value: text.slice(lastIndex) });
+  }
+
+  function handleHashtagClick(e, value) {
+    // Ngăn event nổi lên PostCard (không mở modal post khi nhấn hashtag)
+    e.stopPropagation();
+    // Bỏ dấu # rồi navigate, vd: "#Python" → "/hashtag/python"
+    const tag = value.slice(1).toLowerCase();
+    navigate(`/hashtag/${tag}`);
+  }
+
+  function handleMentionClick(e, value) {
+    e.stopPropagation();
+    // Bỏ dấu @ rồi navigate, vd: "@nguyen" → "/profile/nguyen"
+    // Backend sẽ tìm user theo userName
+    const username = value.slice(1);
+    navigate(`/profile/${username}`);
   }
 
   return (
@@ -37,6 +57,7 @@ export default function RichText({ text, style = {} }) {
           return (
             <span
               key={i}
+              onClick={(e) => handleHashtagClick(e, part.value)}
               style={{
                 color: "var(--primary, #6366f1)",
                 fontWeight: 500,
@@ -51,6 +72,7 @@ export default function RichText({ text, style = {} }) {
           return (
             <span
               key={i}
+              onClick={(e) => handleMentionClick(e, part.value)}
               style={{
                 color: "#0ea5e9",
                 fontWeight: 500,

@@ -25,9 +25,9 @@ public class HashtagService : IHashtagService
             .Take(top)
             .Select(h => new HashtagDto
             {
-                Id         = h.Id,
-                Name       = h.Name,
-                PostCount  = h.PostCount,
+                Id = h.Id,
+                Name = h.Name,
+                PostCount = h.PostCount,
                 IsFollowed = followedIds.Contains(h.Id)
             })
             .ToListAsync();
@@ -41,9 +41,9 @@ public class HashtagService : IHashtagService
             .OrderByDescending(uh => uh.Hashtag.PostCount)
             .Select(uh => new HashtagDto
             {
-                Id         = uh.Hashtag.Id,
-                Name       = uh.Hashtag.Name,
-                PostCount  = uh.Hashtag.PostCount,
+                Id = uh.Hashtag.Id,
+                Name = uh.Hashtag.Name,
+                PostCount = uh.Hashtag.PostCount,
                 IsFollowed = true
             })
             .ToListAsync();
@@ -68,7 +68,7 @@ public class HashtagService : IHashtagService
         {
             _context.UserHashtags.Add(new UserHashtag
             {
-                UserId    = userId,
+                UserId = userId,
                 HashtagId = hashtagId,
                 FollowedAt = DateTime.UtcNow
             });
@@ -79,8 +79,8 @@ public class HashtagService : IHashtagService
 
         return new FollowHashtagResultDto
         {
-            HashtagId  = hashtag.Id,
-            Name       = hashtag.Name,
+            HashtagId = hashtag.Id,
+            Name = hashtag.Name,
             IsFollowed = isFollowed
         };
     }
@@ -100,11 +100,57 @@ public class HashtagService : IHashtagService
             .Take(10)
             .Select(h => new HashtagDto
             {
-                Id         = h.Id,
-                Name       = h.Name,
-                PostCount  = h.PostCount,
+                Id = h.Id,
+                Name = h.Name,
+                PostCount = h.PostCount,
                 IsFollowed = followedIds.Contains(h.Id)
             })
             .ToListAsync();
+    }
+
+
+    public async Task<object> GetPostsByHashtagAsync(string tag, int page, int pageSize)
+    {
+        var normalizedTag = tag.TrimStart('#').ToLower();
+        var hashtag = await _context.Hashtags
+            .FirstOrDefaultAsync(h => h.Name!.ToLower() == normalizedTag);
+        if (hashtag == null)
+            return new { posts = Array.Empty<object>(), totalPages = 0, totalCount = 0 };
+        var query = _context.Posts
+            .Where(p => !p.IsDeleted &&
+                        p.Content != null &&
+                        p.Content.ToLower().Contains("#" + normalizedTag))
+            .Include(p => p.Author)
+            .OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        var formattedPosts = posts.Select(p => new
+        {
+            p.Id,
+            p.Content,
+            p.ImageUrl,
+            p.LikesCount,
+            p.CommentsCount,
+            createdAt = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            author = new
+            {
+                id = p.Author.Id,
+                userName = p.Author.UserName,
+                displayName = p.Author.DisplayName,
+                avatarUrl = p.Author.AvatarUrl
+            }
+        }).ToList();
+        return new
+        {
+            posts = formattedPosts,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
     }
 }

@@ -21,7 +21,7 @@ public class HashtagsController : ControllerBase
     public async Task<IActionResult> GetTrending([FromQuery] int top = 10)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var data   = await _hashtagService.GetTrendingAsync(userId, top);
+        var data = await _hashtagService.GetTrendingAsync(userId, top);
         return Ok(new { success = true, data });
     }
 
@@ -29,7 +29,7 @@ public class HashtagsController : ControllerBase
     public async Task<IActionResult> GetFollowed()
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var data   = await _hashtagService.GetFollowedAsync(userId);
+        var data = await _hashtagService.GetFollowedAsync(userId);
         return Ok(new { success = true, data });
     }
 
@@ -48,7 +48,17 @@ public class HashtagsController : ControllerBase
             return Ok(new { success = true, data = Array.Empty<object>() });
 
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var data   = await _hashtagService.SearchAsync(q, userId);
+        var data = await _hashtagService.SearchAsync(q, userId);
+        return Ok(new { success = true, data });
+    }
+    
+    [HttpGet("{tag}/posts")]
+    public async Task<IActionResult> GetPostsByHashtag(
+        string tag,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var data = await _hashtagService.GetPostsByHashtagAsync(tag, page, pageSize);
         return Ok(new { success = true, data });
     }
 }

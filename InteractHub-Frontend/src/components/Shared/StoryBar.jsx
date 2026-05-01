@@ -77,7 +77,6 @@ function CreateStoryModal({ onClose, onCreated }) {
       await createStory(formData);
       app.toast("Đã đăng story thành công!", "success");
       onCreated?.();
-      onClose();
     } catch (err) {
       console.error(err);
       app.toast("Không đăng được story", "error");

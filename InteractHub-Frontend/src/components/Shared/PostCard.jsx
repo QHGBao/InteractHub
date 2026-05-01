@@ -83,6 +83,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   async function handleLike() {
     try {
       const result = await likeApi.toggleLike(post.id);
+      console.log("LIKE RESULT:", result);
       setLiked(result.isLiked);
       setLikesCount(result.likesCount);
       onUpdate && onUpdate({ id: post.id, likesCount: result.likesCount });
