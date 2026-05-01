@@ -31,7 +31,8 @@ builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
-builder.Services.AddScoped<StoryService>();
+builder.Services.AddScoped<IStoryService,StoryService>();
+builder.Services.AddScoped<IHashtagService, HashtagService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // SignalR

@@ -4,6 +4,8 @@ import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
 import CommentItem from "./CommentItem";
 import ImageLightbox from "./ImageLightBox";
+import RichText from "./RichText";
+import SuggestionDropdown from "./SuggestionDropdown";
 
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
@@ -11,6 +13,7 @@ import { likeApi } from "../../api/likeApi";
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useHashtagMention } from "../../hooks/useHashtagMention";
 
 export default function PostCard({ post, onUpdate, onDelete }) {
   const { user } = useAuth();
@@ -37,9 +40,16 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  // ── Hashtag / Mention cho ô comment ──
+  const commentRef = useRef(null);
+  const { suggestions, suggestionType, handleTextChange, applySuggestion, closeSuggestions } =
+    useHashtagMention();
+  // ─────────────────────────────────────
+
   const currentUserId = user?.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
 
+  // Giữ nguyên hoàn toàn
   useEffect(() => {
     if (showComments && comments.length === 0) {
       loadComments();
@@ -81,6 +91,23 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+  // ── Handler comment có hashtag/mention ──
+  function handleCommentChange(e) {
+    const val = e.target.value;
+    setCommentText(val);
+    handleTextChange(val, e.target.selectionStart);
+  }
+
+  function handleSelectSuggestion(item) {
+    const textarea = commentRef.current;
+    const cur = textarea?.selectionStart ?? commentText.length;
+    const { newText, newCursor } = applySuggestion(commentText, cur, item, suggestionType);
+    setCommentText(newText);
+    closeSuggestions();
+    setTimeout(() => { textarea?.focus(); textarea?.setSelectionRange(newCursor, newCursor); }, 0);
+  }
+  // ────────────────────────────────────────
+
   async function handleAddComment() {
     if (!commentText.trim()) return;
     try {
@@ -89,6 +116,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       await loadComments();
       setCommentsCount((prev) => prev + 1);
       setCommentText("");
+      closeSuggestions(); // đóng dropdown sau khi gửi
     } catch (err) {
       console.error("Add comment error:", err);
     } finally {
@@ -96,6 +124,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+  // Giữ nguyên hoàn toàn
   async function handleReplyToComment(parentCommentId, content) {
     try {
       await commentApi.createComment(post.id, { content, parentCommentId });
@@ -140,6 +169,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+  // Giữ nguyên hoàn toàn
   const postImages = post.imageUrl
     ? (post.imageUrl.startsWith('[') ? JSON.parse(post.imageUrl) : [post.imageUrl])
     : [];
@@ -155,7 +185,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         <div onClick={() => navigate(`/profile/${post.author?.id}`)} style={{ cursor: "pointer" }}>
           <Avatar user={post.author} />
         </div>
-
         <div style={{ flex: 1 }}>
           <div
             style={{ fontWeight: 600, fontSize: 14, cursor: "pointer" }}
@@ -167,7 +196,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
             {new Date(post.createdAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
           </div>
         </div>
-
         {isPostOwner && (
           <div style={{ position: "relative" }} ref={menuRef}>
             <button className="btn btn-ghost btn-xs" onClick={() => setShowMenu(!showMenu)}>
@@ -197,8 +225,12 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         )}
       </div>
 
-      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>{post.content}</p>
+      {/* ── Chỉ thay dòng này: dùng RichText thay vì plain text ── */}
+      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>
+        <RichText text={post.content} />
+      </p>
 
+      {/* Giữ nguyên hoàn toàn */}
       {postImages.length > 0 && (
         <div style={{
           display: 'grid',
@@ -242,16 +274,37 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
       {showComments && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <input value={commentText} onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Viết bình luận..." style={{ flex: 1 }}
-              onKeyPress={(e) => e.key === "Enter" && handleAddComment()}
-            />
+          {/* ── Ô comment với hashtag/mention ── */}
+          <div style={{ position: "relative", display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <input
+                ref={commentRef}
+                value={commentText}
+                onChange={handleCommentChange}
+                onKeyDown={e => {
+                  if (e.key === "Escape") closeSuggestions();
+                  if (e.key === "Enter") handleAddComment();
+                }}
+                onBlur={() => setTimeout(closeSuggestions, 150)}
+                placeholder="Viết bình luận... (@ tag bạn bè, # hashtag)"
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
+              {suggestions.length > 0 && (
+                <SuggestionDropdown
+                  suggestions={suggestions}
+                  type={suggestionType}
+                  onSelect={handleSelectSuggestion}
+                />
+              )}
+            </div>
             <button onClick={handleAddComment} disabled={!commentText.trim() || submitting}
               className="btn btn-primary btn-sm">
               {submitting ? "..." : "Gửi"}
             </button>
           </div>
+          {/* ─────────────────────────────────── */}
+
+          {/* Giữ nguyên hoàn toàn */}
           {comments.map((c) => (
             <CommentItem key={c.id} comment={c} postId={post.id}
               onReply={handleReplyToComment} onDelete={handleDeleteComment}
@@ -266,7 +319,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
           images={postImages}
           initialIndex={lightboxIndex}
           onClose={() => setShowLightbox(false)}
-          post={post}  // 👈 thêm dòng này
+          post={post}
         />
       )}
 

@@ -59,6 +59,7 @@ Controllers/
  AuthController.cs
  CommentsController.cs
  FriendController.cs
+ HashtagController.cs
  LikesController.cs
  NotificationsController.cs
  PostsController.cs
@@ -75,6 +76,7 @@ DTOs/Friend/
  FriendRequestDto.cs
  FriendResponseDto.cs
 DTOs/
+ Hashtag/HashtagDto.cs
  Notification/NotificationDto.cs
  Post/
   CommentDto.cs
@@ -91,6 +93,10 @@ Hubs/NotificationHub.cs
 Migrations/
  20260429145750_InitDb.cs
  20260429145750_InitDb.Designer.cs
+ 20260430043003_AddCoverUrl.cs
+ 20260430043003_AddCoverUrl.Designer.cs
+ 20260430051445_AddProfileFields.cs
+ 20260430051445_AddProfileFields.Designer.cs
  AppDbContextModelSnapshot.cs
 Model/
  ApplicationUser.cs
@@ -113,9 +119,11 @@ Service/
  AuthService.cs
  CommentService.cs
  FriendService.cs
+ HashtagService.cs
  IAuthService.cs
  ICommentService.cs
  IFriendService.cs
+ IHashtagService.cs
  ILikeService.cs
  INotificationService.cs
  IPostService.cs
