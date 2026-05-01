@@ -7,9 +7,9 @@ export const likeApi = {
     return res.data;
   },
 
-  // GET /api/posts/{postId}/unlike
-  getUnlikes: async (postId) => {
-    const res = await axiosInstance.get(`/posts/${postId}/unlike`);
+  // GET /api/posts/{postId}/likes
+  getLikes: async (postId) => {
+    const res = await axiosInstance.get(`/posts/${postId}/likes`);
     return res.data;
   }
 };
