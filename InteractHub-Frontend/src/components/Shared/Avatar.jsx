@@ -1,22 +1,22 @@
 const AvatarColors = [
-  '#7c6af7','#4ade80','#f87171',
-  '#fbbf24','#60a5fa','#f472b6','#34d399'
+  '#7c6af7', '#4ade80', '#f87171',
+  '#fbbf24', '#60a5fa', '#f472b6', '#34d399'
 ];
 
-function Avatar({ user, size='md' }) {
+function Avatar({ user, size = 'md' }) {
   if (!user) return null;
 
   const cls =
     size === 'sm' ? 'ava ava-sm' :
-    size === 'lg' ? 'ava ava-lg' :
-    size === 'xl' ? 'ava ava-xl' :
-    'ava';
+      size === 'lg' ? 'ava ava-lg' :
+        size === 'xl' ? 'ava ava-xl' :
+          'ava';
 
   const name = (user.displayName || user.userName || '?').trim();
 
   const color =
     AvatarColors[
-      name.charCodeAt(0) % AvatarColors.length
+    name.charCodeAt(0) % AvatarColors.length
     ];
 
   const text = name
@@ -35,7 +35,7 @@ function Avatar({ user, size='md' }) {
         <img
           src={avatarUrl}
           alt={name}
-          style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
         />
       </div>
     );

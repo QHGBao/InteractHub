@@ -32,13 +32,13 @@ public class CommentService : ICommentService
             c.Id,
             c.Content,
             c.CreatedAt,
-            Author = new { c.Author.Id, c.Author.UserName },
+            Author = new { c.Author.Id, c.Author.UserName, c.Author.DisplayName, c.Author.AvatarUrl },
             Replies = c.Replies.Select(r => new
             {
                 r.Id,
                 r.Content,
                 r.CreatedAt,
-                Author = new { r.Author.Id, r.Author.UserName }
+                Author = new { r.Author.Id, r.Author.UserName, r.Author.DisplayName, r.Author.AvatarUrl }
             })
         }).ToListAsync();
         return comments;
@@ -115,7 +115,9 @@ public class CommentService : ICommentService
             Author = new
             {
                 comment.Author.Id,
-                comment.Author.UserName
+                comment.Author.UserName,
+                comment.Author.DisplayName,
+                comment.Author.AvatarUrl
             }
         };
     }

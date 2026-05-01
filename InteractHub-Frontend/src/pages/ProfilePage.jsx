@@ -142,7 +142,7 @@ export default function ProfilePage() {
         </div>
 
         <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginTop: -44, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginTop: -20, marginBottom: 12 }}>
 
             <div style={{ position: 'relative' }}>
               <Avatar user={user} size="xl" />

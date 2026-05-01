@@ -16,8 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useHashtagMention } from "../../hooks/useHashtagMention";
 
 // ── Embedded post (bài gốc được nhúng vào) ──────────────────────────────────
-function EmbeddedPost({ sharedPost }) {
-  const navigate = useNavigate();
+function EmbeddedPost({ sharedPost, onImageClick }) {
   if (!sharedPost) return null;
 
   const images = sharedPost.imageUrl
@@ -34,9 +33,7 @@ function EmbeddedPost({ sharedPost }) {
         padding: "12px 14px",
         margin: "10px 0",
         background: "var(--bg2)",
-        cursor: "pointer",
       }}
-      onClick={() => navigate(`/posts/${sharedPost.id}`)}
     >
       {/* Author row */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -60,7 +57,7 @@ function EmbeddedPost({ sharedPost }) {
         </p>
       )}
 
-      {/* Images (tối đa 2) */}
+      {/* Images — bấm vào mở lightbox bài gốc */}
       {images.length > 0 && (
         <div
           style={{
@@ -69,7 +66,9 @@ function EmbeddedPost({ sharedPost }) {
             gap: 4,
             borderRadius: 6,
             overflow: "hidden",
+            cursor: "pointer",
           }}
+          onClick={() => onImageClick && onImageClick(sharedPost, 0)}
         >
           {images.slice(0, 2).map((img, i) => (
             <div
@@ -88,15 +87,10 @@ function EmbeddedPost({ sharedPost }) {
               {i === 1 && images.length > 2 && (
                 <div
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(0,0,0,0.6)",
-                    color: "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 22,
-                    fontWeight: 700,
+                    position: "absolute", inset: 0,
+                    background: "rgba(0,0,0,0.6)", color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 22, fontWeight: 700,
                   }}
                 >
                   +{images.length - 2}
@@ -243,6 +237,8 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
 
   // ── Share modal ──
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sharedPostLightbox, setSharedPostLightbox] = useState(null);
+  const [sharedPostLightboxIndex, setSharedPostLightboxIndex] = useState(0);
 
   const commentRef = useRef(null);
   const { suggestions, suggestionType, handleTextChange, applySuggestion, closeSuggestions } =
@@ -449,7 +445,28 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
       </p>
 
       {/* Embedded shared post (nếu đây là bài chia sẻ) */}
-      {post.sharedPost && <EmbeddedPost sharedPost={post.sharedPost} />}
+      {post.sharedPost && (
+        <EmbeddedPost
+          sharedPost={post.sharedPost}
+          onImageClick={(sp, idx) => {
+            setSharedPostLightbox(sp);
+            setSharedPostLightboxIndex(idx);
+          }}
+        />
+      )}
+
+      {sharedPostLightbox && (
+        <ImageLightbox
+          images={
+            sharedPostLightbox.imageUrl?.startsWith("[")
+              ? JSON.parse(sharedPostLightbox.imageUrl)
+              : [sharedPostLightbox.imageUrl]
+          }
+          initialIndex={sharedPostLightboxIndex}
+          onClose={() => setSharedPostLightbox(null)}
+          post={sharedPostLightbox}
+        />
+      )}
 
       {/* Images của bài hiện tại (chỉ render nếu không phải share-only) */}
       {postImages.length > 0 && (
