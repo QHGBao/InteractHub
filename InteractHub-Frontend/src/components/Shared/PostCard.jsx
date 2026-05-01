@@ -20,7 +20,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(post.isLikedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
 

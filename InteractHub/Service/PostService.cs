@@ -133,11 +133,12 @@ public class PostService : IPostService
         return true;
     }
 
-    public async Task<object> GetPosts(int page, int pageSize)
+    public async Task<object> GetPosts(Guid? currentUserId, int page, int pageSize)
     {
         var query = _context.Posts
             .Where(p => !p.IsDeleted)
             .Include(p => p.Author)
+            .Include(p => p.Likes)
             .OrderByDescending(c => c.CreatedAt);
 
         var totalCount = await query.CountAsync();
@@ -155,6 +156,7 @@ public class PostService : IPostService
             p.LikesCount,
             p.CommentsCount,
             createdAt = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            isLikedByCurrentUser = currentUserId.HasValue && p.Likes.Any(l => l.UserId == currentUserId.Value),
             author = new
             {
                 id          = p.Author.Id,
