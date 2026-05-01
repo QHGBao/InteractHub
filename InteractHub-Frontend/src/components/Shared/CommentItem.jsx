@@ -42,7 +42,7 @@ export default function CommentItem({
   const isCommentOwner = String(currentUserId) === String(comment.author?.id);
   const isPostOwner = String(currentUserId) === String(postAuthorId);
   const canDelete = isCommentOwner || isPostOwner;
-
+  console.log(comment);
   return (
     <div
       style={{

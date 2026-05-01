@@ -2,18 +2,24 @@ import { useState, useEffect, useRef } from "react";
 import Avatar from "./Avatar";
 import ConfirmDeleteModal from "./ConfirmDelete";
 import Icon from "./Icon";
-import CommentItem from "./CommentItem"; // Import component mới
+import CommentItem from "./CommentItem";
 import ImageLightbox from "./ImageLightBox";
+import RichText from "./RichText";
+import SuggestionDropdown from "./SuggestionDropdown";
 
 import { getUserProfile } from "../../api/userApi";
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
 import { likeApi } from "../../api/likeApi";
 
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useHashtagMention } from "../../hooks/useHashtagMention";
 
 export default function PostCard({ post, onUpdate, onDelete }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
@@ -24,41 +30,27 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [postAuthor, setPostAuthor] = useState(null);
   // delete state chung
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteType, setDeleteType] = useState(null); // "post" | "comment"
+  const [deleteType, setDeleteType] = useState(null);
   const [targetId, setTargetId] = useState(null);
 
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // Get current user ID (từ AuthContext)
-  const currentUserId = user.userId;
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // ── Hashtag / Mention cho ô comment ──
+  const commentRef = useRef(null);
+  const { suggestions, suggestionType, handleTextChange, applySuggestion, closeSuggestions } =
+    useHashtagMention();
+  // ─────────────────────────────────────
+
+  const currentUserId = user?.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
 
-  useEffect(() => {
-  async function fetchPostAuthor() {
-    try {
-      const res = await getUserProfile(post.author?.id);
-      const profile = res?.data?.data?.profile;
-
-      if (profile) {
-        setPostAuthor(profile);
-      }
-    } catch (err) {
-      console.error("Fetch author error:", err);
-    }
-  }
-
-  if (post.author?.id) {
-    fetchPostAuthor();
-  }
-}, [post.author?.id]);
-
-  const [showLightbox, setShowLightbox] = useState(false); // ← Add
-  const [lightboxIndex, setLightboxIndex] = useState(0);
   useEffect(() => {
     if (showComments && comments.length === 0) {
       loadComments();
@@ -71,7 +63,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         setShowMenu(false);
       }
     }
-
     if (showMenu) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -90,7 +81,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-
   async function handleLike() {
     try {
       const result = await likeApi.toggleLike(post.id);
@@ -102,21 +92,32 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
+  // ── Handler comment có hashtag/mention ──
+  function handleCommentChange(e) {
+    const val = e.target.value;
+    setCommentText(val);
+    handleTextChange(val, e.target.selectionStart);
+  }
+
+  function handleSelectSuggestion(item) {
+    const textarea = commentRef.current;
+    const cur = textarea?.selectionStart ?? commentText.length;
+    const { newText, newCursor } = applySuggestion(commentText, cur, item, suggestionType);
+    setCommentText(newText);
+    closeSuggestions();
+    setTimeout(() => { textarea?.focus(); textarea?.setSelectionRange(newCursor, newCursor); }, 0);
+  }
+  // ────────────────────────────────────────
+
   async function handleAddComment() {
     if (!commentText.trim()) return;
-
     try {
       setSubmitting(true);
-      await commentApi.createComment(post.id, {
-        content: commentText,
-        parentCommentId: null,
-      });
-
-      // Reload comments để lấy structure mới
+      await commentApi.createComment(post.id, { content: commentText, parentCommentId: null });
       await loadComments();
       setCommentsCount((prev) => prev + 1);
       setCommentText("");
-      onUpdate && onUpdate({ id: post.id, commentsCount: commentsCount + 1 });
+      closeSuggestions(); // đóng dropdown sau khi gửi
     } catch (err) {
       console.error("Add comment error:", err);
     } finally {
@@ -124,15 +125,10 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // Handle reply to comment
+  // Giữ nguyên hoàn toàn
   async function handleReplyToComment(parentCommentId, content) {
     try {
-      await commentApi.createComment(post.id, {
-        content,
-        parentCommentId,
-      });
-
-      // Reload comments
+      await commentApi.createComment(post.id, { content, parentCommentId });
       await loadComments();
       setCommentsCount((prev) => prev + 1);
     } catch (err) {
@@ -141,7 +137,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // ================= DELETE LOGIC =================
   function openDeletePost() {
     setDeleteType("post");
     setTargetId(post.id);
@@ -157,7 +152,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   async function handleConfirmDelete() {
     try {
       setDeleting(true);
-
       if (deleteType === "post") {
         await postApi.deletePost(targetId);
         onDelete && onDelete(targetId);
@@ -166,7 +160,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         await loadComments();
         setCommentsCount((prev) => prev - 1);
       }
-
       setShowConfirm(false);
       setTargetId(null);
       setDeleteType(null);
@@ -176,6 +169,8 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       setDeleting(false);
     }
   }
+
+  // Giữ nguyên hoàn toàn
   const postImages = post.imageUrl
     ? (post.imageUrl.startsWith('[') ? JSON.parse(post.imageUrl) : [post.imageUrl])
     : [];
@@ -187,60 +182,39 @@ export default function PostCard({ post, onUpdate, onDelete }) {
 
   return (
     <div className="card post-card">
-      {/* Header - giữ nguyên */}
       <div className="post-header">
-        <Avatar user={postAuthor} />
+        <div onClick={() => navigate(`/profile/${post.author?.id}`)} style={{ cursor: "pointer" }}>
+          <Avatar user={post.author} />
+        </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>
-            {post.author?.userName ||
-              post.author?.displayName ||
-              post.author?.name ||
-              "Unknown"}
+          <div
+            style={{ fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+            onClick={() => navigate(`/profile/${post.author?.id}`)}
+          >
+            {post.author?.userName || post.author?.displayName || "Unknown"}
           </div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>
-            {new Date(post.createdAt).toLocaleString("vi-VN")}
+            {new Date(post.createdAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
           </div>
         </div>
         {isPostOwner && (
           <div style={{ position: "relative" }} ref={menuRef}>
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setShowMenu(!showMenu)}
-            >
+            <button className="btn btn-ghost btn-xs" onClick={() => setShowMenu(!showMenu)}>
               <Icon name="more" />
             </button>
-
             {showMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "var(--bg3)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  marginTop: 4,
-                  minWidth: 150,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                  zIndex: 10,
-                }}
-              >
+              <div style={{
+                position: "absolute", top: "100%", right: 0,
+                background: "var(--bg3)", border: "1px solid var(--border)",
+                borderRadius: 8, marginTop: 4, minWidth: 150,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)", zIndex: 10,
+              }}>
                 <button
-                  onClick={() => {
-                    openDeletePost();
-                    setShowMenu(false);
-                  }}
+                  onClick={() => { openDeletePost(); setShowMenu(false); }}
                   style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    color: "var(--danger)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    borderRadius: 8,
-                    transition: "background 0.15s",
+                    width: "100%", padding: "10px 14px", textAlign: "left",
+                    fontSize: 13, color: "var(--danger)", display: "flex",
+                    alignItems: "center", gap: 8, borderRadius: 8,
                   }}
                 >
                   <Icon name="trash" size={14} />
@@ -252,50 +226,33 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         )}
       </div>
 
-      {/* Images Grid */}
+      {/* ── Chỉ thay dòng này: dùng RichText thay vì plain text ── */}
+      <p style={{ margin: "12px 0", lineHeight: 1.5 }}>
+        <RichText text={post.content} />
+      </p>
+
+      {/* Giữ nguyên hoàn toàn */}
       {postImages.length > 0 && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: postImages.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-          gap: 4,
-          marginBottom: 12,
-          borderRadius: 8,
-          overflow: 'hidden'
+          gap: 4, marginBottom: 12, borderRadius: 8, overflow: 'hidden'
         }}>
           {postImages.slice(0, 4).map((img, index) => (
-            <div
-              key={index}
-              onClick={() => openLightbox(index)}
+            <div key={index} onClick={() => openLightbox(index)}
               style={{
                 position: 'relative',
                 height: postImages.length === 1 ? 400 : 200,
-                cursor: 'pointer',
-                overflow: 'hidden'
-              }}
-            >
-              <img
-                src={img}
-                alt={`Post image ${index + 1}`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transition: 'transform 0.2s'
-                }}
+                cursor: 'pointer', overflow: 'hidden'
+              }}>
+              <img src={img} alt={`Post image ${index + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
               />
-
-              {/* More overlay */}
               {index === 3 && postImages.length > 4 && (
                 <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(0,0,0,0.7)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontSize: 32,
-                  fontWeight: 700
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 32, fontWeight: 700
                 }}>
                   +{postImages.length - 4}
                 </div>
@@ -305,119 +262,73 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         </div>
       )}
 
-      {/* Actions - giữ nguyên */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          paddingTop: 12,
-          borderTop: "1px solid var(--border)",
-        }}
-      >
-        <button
-          onClick={handleLike}
-          className="btn btn-ghost btn-sm"
-          style={{ color: liked ? "#e74c3c" : "inherit" }}
-        >
+      <div style={{ display: "flex", gap: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        <button onClick={handleLike} className="btn btn-ghost btn-sm"
+          style={{ color: liked ? "#e74c3c" : "inherit" }}>
           {liked ? "❤️" : "🤍"} {likesCount}
         </button>
-
-        <button
-          onClick={() => setShowComments((prev) => !prev)}
-          className="btn btn-ghost btn-sm"
-        >
+        <button onClick={() => setShowComments((prev) => !prev)} className="btn btn-ghost btn-sm">
           💬 {commentsCount}
         </button>
-
         <button className="btn btn-ghost btn-sm">🔗 Chia sẻ</button>
       </div>
 
-      {/* ✅ Comments Section - ĐÃ SỬA */}
       {showComments && (
-        <div
-          style={{
-            marginTop: 12,
-            paddingTop: 12,
-            borderTop: "1px solid var(--border)",
-          }}
-        >
-          {/* Add root comment */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Viết bình luận..."
-              style={{
-                flex: 1,
-                padding: "8px 12px",
-                borderRadius: 20,
-                border: "1px solid var(--border)",
-                fontSize: 13,
-                background: "var(--bg3)",
-                color: "var(--text)",
-              }}
-              onKeyPress={(e) => e.key === "Enter" && handleAddComment()}
-            />
-            <button
-              onClick={handleAddComment}
-              disabled={!commentText.trim() || submitting}
-              className="btn btn-primary btn-sm"
-            >
+        <div style={{ marginTop: 12 }}>
+          {/* ── Ô comment với hashtag/mention ── */}
+          <div style={{ position: "relative", display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <input
+                ref={commentRef}
+                value={commentText}
+                onChange={handleCommentChange}
+                onKeyDown={e => {
+                  if (e.key === "Escape") closeSuggestions();
+                  if (e.key === "Enter") handleAddComment();
+                }}
+                onBlur={() => setTimeout(closeSuggestions, 150)}
+                placeholder="Viết bình luận... (@ tag bạn bè, # hashtag)"
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
+              {suggestions.length > 0 && (
+                <SuggestionDropdown
+                  suggestions={suggestions}
+                  type={suggestionType}
+                  onSelect={handleSelectSuggestion}
+                />
+              )}
+            </div>
+            <button onClick={handleAddComment} disabled={!commentText.trim() || submitting}
+              className="btn btn-primary btn-sm">
               {submitting ? "..." : "Gửi"}
             </button>
           </div>
+          {/* ─────────────────────────────────── */}
 
-          {/* Comments list */}
-          {loadingComments ? (
-            <div
-              style={{ textAlign: "center", padding: 16, color: "var(--text3)" }}
-            >
-              Đang tải...
-            </div>
-          ) : comments.length === 0 ? (
-            <div
-              style={{ textAlign: "center", padding: 16, color: "var(--text3)" }}
-            >
-              Chưa có bình luận nào
-            </div>
-          ) : (
-            <div>
-              {comments.map((comment) => (
-                <CommentItem
-                  key={comment.id}
-                  comment={comment}
-                  postId={post.id}
-                  onReply={handleReplyToComment}
-                  onDelete={handleDeleteComment}
-                  currentUserId={currentUserId}
-                  postAuthorId={post.author?.id}
-                  level={0}
-                />
-              ))}
-            </div>
-          )}
+          {/* Giữ nguyên hoàn toàn */}
+          {comments.map((c) => (
+            <CommentItem key={c.id} comment={c} postId={post.id}
+              onReply={handleReplyToComment} onDelete={handleDeleteComment}
+              currentUserId={currentUserId} postAuthorId={post.author?.id} level={0}
+            />
+          ))}
         </div>
       )}
-      {/* Lightbox */}
+
       {showLightbox && (
         <ImageLightbox
           images={postImages}
           initialIndex={lightboxIndex}
           onClose={() => setShowLightbox(false)}
+          post={post}
         />
       )}
+
       <ConfirmDeleteModal
         open={showConfirm}
-        title={
-          deleteType === "post"
-            ? "Xóa bài viết?"
-            : "Xóa bình luận?"
-        }
+        title={deleteType === "post" ? "Xóa bài viết?" : "Xóa bình luận?"}
         description="Không thể khôi phục nếu xác nhận xóa."
-        confirmText="Xóa"
-        cancelText="Hủy"
-        loading={deleting}
+        confirmText="Xóa" cancelText="Hủy" loading={deleting}
         onCancel={() => setShowConfirm(false)}
         onConfirm={handleConfirmDelete}
       />

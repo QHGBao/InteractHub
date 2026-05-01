@@ -11,7 +11,8 @@ function Avatar({ user, size='md' }) {
     size === 'lg' ? 'ava ava-lg' :
     size === 'xl' ? 'ava ava-xl' :
     'ava';
-  const name = (user.displayName || '?').trim();
+
+  const name = (user.displayName || user.userName || '?').trim();
 
   const color =
     AvatarColors[
@@ -19,12 +20,28 @@ function Avatar({ user, size='md' }) {
     ];
 
   const text = name
-  .split(' ')
-  .map(w => w[0])
-  .slice(0,2)
-  .join('')
-  .toUpperCase();
+    .split(' ')
+    .map(w => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
+  const avatarUrl = user.avatarUrl || user.AvatarUrl;
+
+  // Nếu có ảnh thì hiện ảnh
+  if (avatarUrl) {
+    return (
+      <div className={cls}>
+        <img
+          src={avatarUrl}
+          alt={name}
+          style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }}
+        />
+      </div>
+    );
+  }
+
+  // Không có ảnh thì hiện chữ viết tắt
   return (
     <div
       className={cls}
@@ -38,4 +55,5 @@ function Avatar({ user, size='md' }) {
     </div>
   );
 }
+
 export default Avatar;
