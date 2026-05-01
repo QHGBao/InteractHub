@@ -8,6 +8,7 @@ public record CreatePostDto{
     public string Content { get; set; } = string.Empty;
     [MaxLength(500)]
     public string? ImageUrl { get; set; }
+    public Guid? SharedPostId { get; set; }
 }
 public record UpdatePostDto{
     [Required]

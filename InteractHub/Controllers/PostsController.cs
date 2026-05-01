@@ -43,7 +43,8 @@ public class PostsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<object>> GetPost(Guid id)
     {
-        var result = await _postService.GetPost(id);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _postService.GetPost(id, userId);
         return Ok(result);
     }
 

@@ -39,8 +39,8 @@ public class PostService : IPostService
             .Where(n => !existingNames.Contains(n))
             .Select(n => new Hashtag
             {
-                Id        = Guid.NewGuid(),
-                Name      = n,
+                Id = Guid.NewGuid(),
+                Name = n,
                 PostCount = 1
             });
 
@@ -61,35 +61,60 @@ public class PostService : IPostService
 
     public async Task<object> CreatePost(Guid userId, CreatePostDto dto)
     {
+        // Validate shared post nếu có
+        Post? sharedPost = null;
+        if (dto.SharedPostId.HasValue)
+        {
+            sharedPost = await _context.Posts
+                .Include(p => p.Author)
+                .FirstOrDefaultAsync(p => p.Id == dto.SharedPostId.Value && !p.IsDeleted);
+            if (sharedPost == null)
+                throw new Exception("Bài viết gốc không tồn tại hoặc đã bị xóa.");
+        }
+
         var post = new Post
         {
-            UserId    = userId,
-            Content   = dto.Content,
-            ImageUrl  = dto.ImageUrl,
+            UserId = userId,
+            Content = dto.Content,
+            ImageUrl = dto.ImageUrl,
+            SharedPostId = dto.SharedPostId,
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Add(post);
         var tags = ParseHashtags(dto.Content);
         await UpsertHashtagsAsync(tags);
-
         await _context.SaveChangesAsync();
         await _context.Entry(post).Reference(p => p.Author).LoadAsync();
 
         return new
         {
-            id            = post.Id,
-            content       = post.Content,
-            imageUrl      = post.ImageUrl,
-            createdAt     = DateTime.SpecifyKind(post.CreatedAt, DateTimeKind.Utc).ToString("o"),
-            likesCount    = post.LikesCount,
+            id = post.Id,
+            content = post.Content,
+            imageUrl = post.ImageUrl,
+            createdAt = DateTime.SpecifyKind(post.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            likesCount = post.LikesCount,
             commentsCount = post.CommentsCount,
             author = new
             {
-                id          = post.Author.Id,
-                userName    = post.Author.UserName,
+                id = post.Author.Id,
+                userName = post.Author.UserName,
                 displayName = post.Author.DisplayName,
-                avatarUrl   = post.Author.AvatarUrl
+                avatarUrl = post.Author.AvatarUrl
+            },
+            sharedPost = sharedPost == null ? null : new   // trả về embedded post
+            {
+                id = sharedPost.Id,
+                content = sharedPost.Content,
+                imageUrl = sharedPost.ImageUrl,
+                createdAt = DateTime.SpecifyKind(sharedPost.CreatedAt, DateTimeKind.Utc).ToString("o"),
+                author = new
+                {
+                    id = sharedPost.Author.Id,
+                    userName = sharedPost.Author.UserName,
+                    displayName = sharedPost.Author.DisplayName,
+                    avatarUrl = sharedPost.Author.AvatarUrl
+                }
             }
         };
     }
@@ -120,13 +145,13 @@ public class PostService : IPostService
         var newTags = ParseHashtags(dto.Content);
 
         var removed = oldTags.Except(newTags).ToList();
-        var added   = newTags.Except(oldTags).ToList();
+        var added = newTags.Except(oldTags).ToList();
 
         await DecrementHashtagsAsync(removed);
         await UpsertHashtagsAsync(added);
 
-        post.Content   = dto.Content;
-        post.ImageUrl  = dto.ImageUrl;
+        post.Content = dto.Content;
+        post.ImageUrl = dto.ImageUrl;
         post.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -139,6 +164,8 @@ public class PostService : IPostService
             .Where(p => !p.IsDeleted)
             .Include(p => p.Author)
             .Include(p => p.Likes)
+            .Include(p => p.SharedPost)
+                .ThenInclude(sp => sp!.Author)
             .OrderByDescending(c => c.CreatedAt);
 
         var totalCount = await query.CountAsync();
@@ -159,10 +186,24 @@ public class PostService : IPostService
             isLikedByCurrentUser = currentUserId.HasValue && p.Likes.Any(l => l.UserId == currentUserId.Value),
             author = new
             {
-                id          = p.Author.Id,
-                userName    = p.Author.UserName,
+                id = p.Author.Id,
+                userName = p.Author.UserName,
                 displayName = p.Author.DisplayName,
-                avatarUrl   = p.Author.AvatarUrl
+                avatarUrl = p.Author.AvatarUrl
+            },
+            sharedPost = p.SharedPost == null ? null : new  // thêm
+            {
+                id = p.SharedPost.Id,
+                content = p.SharedPost.Content,
+                imageUrl = p.SharedPost.ImageUrl,
+                createdAt = DateTime.SpecifyKind(p.SharedPost.CreatedAt, DateTimeKind.Utc).ToString("o"),
+                author = new
+                {
+                    id = p.SharedPost.Author.Id,
+                    userName = p.SharedPost.Author.UserName,
+                    displayName = p.SharedPost.Author.DisplayName,
+                    avatarUrl = p.SharedPost.Author.AvatarUrl
+                }
             }
         }).ToList();
 
@@ -176,7 +217,7 @@ public class PostService : IPostService
         };
     }
 
-    public async Task<object?> GetPost(Guid id)
+    public async Task<object?> GetPost(Guid id, Guid? currentUserId)
     {
         var post = await _context.Posts
             .Where(p => p.Id == id && !p.IsDeleted)
@@ -184,55 +225,79 @@ public class PostService : IPostService
                 .ThenInclude(c => c.Author)
             .Include(p => p.Author)
             .Include(p => p.Likes)
-                .ThenInclude(l => l.User)
+            .Include(p => p.SharedPost)
+                .ThenInclude(sp => sp!.Author)
             .FirstOrDefaultAsync();
 
         if (post == null) return null;
 
         return new
         {
-            id            = post.Id,
-            content       = post.Content,
-            imageUrl      = post.ImageUrl,
-            likesCount    = post.LikesCount,
+            id = post.Id,
+            content = post.Content,
+            imageUrl = post.ImageUrl,
+            likesCount = post.LikesCount,
             commentsCount = post.CommentsCount,
-            createdAt     = DateTime.SpecifyKind(post.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            createdAt = DateTime.SpecifyKind(post.CreatedAt, DateTimeKind.Utc).ToString("o"),
+
+            isLikedByCurrentUser =
+                currentUserId.HasValue &&
+                post.Likes.Any(l => l.UserId == currentUserId.Value),
+
             author = new
             {
-                id          = post.Author.Id,
-                userName    = post.Author.UserName,
+                id = post.Author.Id,
+                userName = post.Author.UserName,
                 displayName = post.Author.DisplayName,
-                avatarUrl   = post.Author.AvatarUrl
+                avatarUrl = post.Author.AvatarUrl
             },
+            sharedPost = post.SharedPost == null ? null : new
+            {
+                id = post.SharedPost.Id,
+                content = post.SharedPost.Content,
+                imageUrl = post.SharedPost.ImageUrl,
+                createdAt = DateTime.SpecifyKind(post.SharedPost.CreatedAt, DateTimeKind.Utc).ToString("o"),
+                author = new
+                {
+                    id = post.SharedPost.Author.Id,
+                    userName = post.SharedPost.Author.UserName,
+                    displayName = post.SharedPost.Author.DisplayName,
+                    avatarUrl = post.SharedPost.Author.AvatarUrl
+                }
+            },
+
             comments = post.Comments
                 .Where(c => c.ParentCommentId == null)
                 .Select(c => new
                 {
-                    id        = c.Id,
-                    content   = c.Content,
+                    id = c.Id,
+                    content = c.Content,
                     createdAt = DateTime.SpecifyKind(c.CreatedAt, DateTimeKind.Utc).ToString("o"),
                     author = new
                     {
-                        id          = c.Author.Id,
-                        userName    = c.Author.UserName,
+                        id = c.Author.Id,
+                        userName = c.Author.UserName,
                         displayName = c.Author.DisplayName,
-                        avatarUrl   = c.Author.AvatarUrl
+                        avatarUrl = c.Author.AvatarUrl
                     },
                     repliesCount = post.Comments.Count(r => r.ParentCommentId == c.Id)
                 }),
+
             likes = post.Likes.Select(l => new
             {
-                id        = l.Id,
+                id = l.Id,
                 createdAt = DateTime.SpecifyKind(l.CreatedAt, DateTimeKind.Utc).ToString("o")
             })
         };
     }
-
-    public async Task<object> GetPostsByUser(Guid userId, int page, int pageSize)
+    public async Task<object> GetPostsByUser(Guid? userId, int page, int pageSize)
     {
         var query = _context.Posts
             .Where(p => p.UserId == userId && !p.IsDeleted)
             .Include(p => p.Author)
+            .Include(p => p.Likes)
+            .Include(p => p.SharedPost)
+                .ThenInclude(sp => sp!.Author)
             .OrderByDescending(p => p.CreatedAt);
 
         var totalCount = await query.CountAsync();
@@ -250,12 +315,29 @@ public class PostService : IPostService
             p.LikesCount,
             p.CommentsCount,
             createdAt = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            isLikedByCurrentUser = userId.HasValue && p.Likes.Any(l => l.UserId == userId.Value),
             author = new
             {
-                id          = p.Author.Id,
-                userName    = p.Author.UserName,
+                id = p.Author.Id,
+                userName = p.Author.UserName,
                 displayName = p.Author.DisplayName,
-                avatarUrl   = p.Author.AvatarUrl
+                avatarUrl = p.Author.AvatarUrl
+            },
+
+            // shared post
+            sharedPost = p.SharedPost == null ? null : new
+            {
+                id = p.SharedPost.Id,
+                content = p.SharedPost.Content,
+                imageUrl = p.SharedPost.ImageUrl,
+                createdAt = DateTime.SpecifyKind(p.SharedPost.CreatedAt, DateTimeKind.Utc).ToString("o"),
+                author = new
+                {
+                    id = p.SharedPost.Author.Id,
+                    userName = p.SharedPost.Author.UserName,
+                    displayName = p.SharedPost.Author.DisplayName,
+                    avatarUrl = p.SharedPost.Author.AvatarUrl
+                }
             }
         }).ToList();
 

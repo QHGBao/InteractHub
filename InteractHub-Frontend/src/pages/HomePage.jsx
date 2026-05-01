@@ -50,6 +50,11 @@ export default function HomePage() {
     }
   }
 
+  function handleSharePost(newPost) {
+    setPosts((prev) => [newPost, ...prev.slice(0, 29)]);
+    toast("Đã chia sẻ bài viết!", "success");
+  }
+  
   async function handlePost(text, imageUrl = null) {
     try {
       const newPost = await postApi.createPost({ content: text, imageUrl });
@@ -182,6 +187,7 @@ export default function HomePage() {
                 post={p}
                 onUpdate={handlePostUpdate}
                 onDelete={handleDeletePost}
+                onShare={handleSharePost}
               />
             ))}
 

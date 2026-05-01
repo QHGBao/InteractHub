@@ -7,7 +7,6 @@ import ImageLightbox from "./ImageLightBox";
 import RichText from "./RichText";
 import SuggestionDropdown from "./SuggestionDropdown";
 
-import { getUserProfile } from "../../api/userApi";
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
 import { likeApi } from "../../api/likeApi";
@@ -16,7 +15,208 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useHashtagMention } from "../../hooks/useHashtagMention";
 
-export default function PostCard({ post, onUpdate, onDelete }) {
+// ── Embedded post (bài gốc được nhúng vào) ──────────────────────────────────
+function EmbeddedPost({ sharedPost }) {
+  const navigate = useNavigate();
+  if (!sharedPost) return null;
+
+  const images = sharedPost.imageUrl
+    ? sharedPost.imageUrl.startsWith("[")
+      ? JSON.parse(sharedPost.imageUrl)
+      : [sharedPost.imageUrl]
+    : [];
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: "12px 14px",
+        margin: "10px 0",
+        background: "var(--bg2)",
+        cursor: "pointer",
+      }}
+      onClick={() => navigate(`/posts/${sharedPost.id}`)}
+    >
+      {/* Author row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <Avatar user={sharedPost.author} size={32} />
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>
+            {sharedPost.author?.userName || sharedPost.author?.displayName || "Unknown"}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text3)" }}>
+            {new Date(sharedPost.createdAt).toLocaleString("vi-VN", {
+              timeZone: "Asia/Ho_Chi_Minh",
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      {sharedPost.content && (
+        <p style={{ margin: "0 0 8px", fontSize: 14, lineHeight: 1.5 }}>
+          <RichText text={sharedPost.content} />
+        </p>
+      )}
+
+      {/* Images (tối đa 2) */}
+      {images.length > 0 && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: images.length === 1 ? "1fr" : "repeat(2,1fr)",
+            gap: 4,
+            borderRadius: 6,
+            overflow: "hidden",
+          }}
+        >
+          {images.slice(0, 2).map((img, i) => (
+            <div
+              key={i}
+              style={{
+                height: images.length === 1 ? 220 : 130,
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <img
+                src={img}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              {i === 1 && images.length > 2 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 22,
+                    fontWeight: 700,
+                  }}
+                >
+                  +{images.length - 2}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Share Modal ──────────────────────────────────────────────────────────────
+function ShareModal({ post, onClose, onShared }) {
+  const [shareText, setShareText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+
+  async function handleShare() {
+    try {
+      setSubmitting(true);
+      const newPost = await postApi.sharePost(post.id, shareText);
+      onShared && onShared(newPost);
+      onClose();
+    } catch (err) {
+      console.error("Share error:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Đóng khi click backdrop
+  function handleBackdropClick(e) {
+    if (e.target === e.currentTarget) onClose();
+  }
+
+  return (
+    <div
+      onClick={handleBackdropClick}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          background: "var(--bg1)",
+          border: "1px solid var(--border)",
+          borderRadius: 14,
+          width: "100%",
+          maxWidth: 520,
+          padding: "20px 22px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 14,
+          }}
+        >
+          <span style={{ fontWeight: 700, fontSize: 16 }}>Chia sẻ bài viết</span>
+          <button className="btn btn-ghost btn-xs" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {/* Textarea nội dung của người chia sẻ */}
+        <textarea
+          autoFocus
+          value={shareText}
+          onChange={(e) => setShareText(e.target.value)}
+          placeholder="Thêm suy nghĩ của bạn... (tuỳ chọn)"
+          rows={3}
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            resize: "vertical",
+            marginBottom: 10,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--bg2)",
+            color: "var(--text1)",
+            fontSize: 14,
+          }}
+        />
+
+        {/* Preview bài gốc được nhúng */}
+        <EmbeddedPost sharedPost={post} />
+
+        {/* Actions */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>
+            Hủy
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleShare}
+            disabled={submitting}
+          >
+            {submitting ? "Đang chia sẻ..." : "🔗 Chia sẻ"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PostCard chính ───────────────────────────────────────────────────────────
+export default function PostCard({ post, onUpdate, onDelete, onShare }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -30,7 +230,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // delete state chung
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteType, setDeleteType] = useState(null);
@@ -42,26 +241,23 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  // ── Hashtag / Mention cho ô comment ──
+  // ── Share modal ──
+  const [showShareModal, setShowShareModal] = useState(false);
+
   const commentRef = useRef(null);
   const { suggestions, suggestionType, handleTextChange, applySuggestion, closeSuggestions } =
     useHashtagMention();
-  // ─────────────────────────────────────
 
   const currentUserId = user?.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
 
   useEffect(() => {
-    if (showComments && comments.length === 0) {
-      loadComments();
-    }
+    if (showComments && comments.length === 0) loadComments();
   }, [showComments]);
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(event.target)) setShowMenu(false);
     }
     if (showMenu) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -84,7 +280,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
   async function handleLike() {
     try {
       const result = await likeApi.toggleLike(post.id);
-      console.log("LIKE RESULT:", result);
       setLiked(result.isLiked);
       setLikesCount(result.likesCount);
       onUpdate && onUpdate({ id: post.id, likesCount: result.likesCount });
@@ -93,7 +288,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // ── Handler comment có hashtag/mention ──
   function handleCommentChange(e) {
     const val = e.target.value;
     setCommentText(val);
@@ -106,9 +300,11 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     const { newText, newCursor } = applySuggestion(commentText, cur, item, suggestionType);
     setCommentText(newText);
     closeSuggestions();
-    setTimeout(() => { textarea?.focus(); textarea?.setSelectionRange(newCursor, newCursor); }, 0);
+    setTimeout(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(newCursor, newCursor);
+    }, 0);
   }
-  // ────────────────────────────────────────
 
   async function handleAddComment() {
     if (!commentText.trim()) return;
@@ -118,7 +314,7 @@ export default function PostCard({ post, onUpdate, onDelete }) {
       await loadComments();
       setCommentsCount((prev) => prev + 1);
       setCommentText("");
-      closeSuggestions(); // đóng dropdown sau khi gửi
+      closeSuggestions();
     } catch (err) {
       console.error("Add comment error:", err);
     } finally {
@@ -126,7 +322,6 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // Giữ nguyên hoàn toàn
   async function handleReplyToComment(parentCommentId, content) {
     try {
       await commentApi.createComment(post.id, { content, parentCommentId });
@@ -171,9 +366,10 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     }
   }
 
-  // Giữ nguyên hoàn toàn
   const postImages = post.imageUrl
-    ? (post.imageUrl.startsWith('[') ? JSON.parse(post.imageUrl) : [post.imageUrl])
+    ? post.imageUrl.startsWith("[")
+      ? JSON.parse(post.imageUrl)
+      : [post.imageUrl]
     : [];
 
   function openLightbox(index = 0) {
@@ -181,8 +377,14 @@ export default function PostCard({ post, onUpdate, onDelete }) {
     setShowLightbox(true);
   }
 
+  // Callback khi share thành công → báo lên parent để prepend post mới
+  function handleShared(newPost) {
+    onShare && onShare(newPost);
+  }
+
   return (
     <div className="card post-card">
+      {/* Header */}
       <div className="post-header">
         <div onClick={() => navigate(`/profile/${post.author?.id}`)} style={{ cursor: "pointer" }}>
           <Avatar user={post.author} />
@@ -204,18 +406,32 @@ export default function PostCard({ post, onUpdate, onDelete }) {
               <Icon name="more" />
             </button>
             {showMenu && (
-              <div style={{
-                position: "absolute", top: "100%", right: 0,
-                background: "var(--bg3)", border: "1px solid var(--border)",
-                borderRadius: 8, marginTop: 4, minWidth: 150,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)", zIndex: 10,
-              }}>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "var(--bg3)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  marginTop: 4,
+                  minWidth: 150,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  zIndex: 10,
+                }}
+              >
                 <button
                   onClick={() => { openDeletePost(); setShowMenu(false); }}
                   style={{
-                    width: "100%", padding: "10px 14px", textAlign: "left",
-                    fontSize: 13, color: "var(--danger)", display: "flex",
-                    alignItems: "center", gap: 8, borderRadius: 8,
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    color: "var(--danger)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    borderRadius: 8,
                   }}
                 >
                   <Icon name="trash" size={14} />
@@ -227,34 +443,61 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         )}
       </div>
 
-      {/* ── Chỉ thay dòng này: dùng RichText thay vì plain text ── */}
+      {/* Content */}
       <p style={{ margin: "12px 0", lineHeight: 1.5 }}>
         <RichText text={post.content} />
       </p>
 
-      {/* Giữ nguyên hoàn toàn */}
+      {/* Embedded shared post (nếu đây là bài chia sẻ) */}
+      {post.sharedPost && <EmbeddedPost sharedPost={post.sharedPost} />}
+
+      {/* Images của bài hiện tại (chỉ render nếu không phải share-only) */}
       {postImages.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: postImages.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-          gap: 4, marginBottom: 12, borderRadius: 8, overflow: 'hidden'
-        }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: postImages.length === 1 ? "1fr" : "repeat(2, 1fr)",
+            gap: 4,
+            marginBottom: 12,
+            borderRadius: 8,
+            overflow: "hidden",
+          }}
+        >
           {postImages.slice(0, 4).map((img, index) => (
-            <div key={index} onClick={() => openLightbox(index)}
+            <div
+              key={index}
+              onClick={() => openLightbox(index)}
               style={{
-                position: 'relative',
+                position: "relative",
                 height: postImages.length === 1 ? 400 : 200,
-                cursor: 'pointer', overflow: 'hidden'
-              }}>
-              <img src={img} alt={`Post image ${index + 1}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
+                cursor: "pointer",
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src={img}
+                alt={`Post image ${index + 1}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transition: "transform 0.2s",
+                }}
               />
               {index === 3 && postImages.length > 4 && (
-                <div style={{
-                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 32, fontWeight: 700
-                }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.7)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontSize: 32,
+                    fontWeight: 700,
+                  }}
+                >
                   +{postImages.length - 4}
                 </div>
               )}
@@ -263,27 +506,34 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         </div>
       )}
 
+      {/* Action bar */}
       <div style={{ display: "flex", gap: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-        <button onClick={handleLike} className="btn btn-ghost btn-sm"
-          style={{ color: liked ? "#e74c3c" : "inherit" }}>
+        <button
+          onClick={handleLike}
+          className="btn btn-ghost btn-sm"
+          style={{ color: liked ? "#e74c3c" : "inherit" }}
+        >
           {liked ? "❤️" : "🤍"} {likesCount}
         </button>
         <button onClick={() => setShowComments((prev) => !prev)} className="btn btn-ghost btn-sm">
           💬 {commentsCount}
         </button>
-        <button className="btn btn-ghost btn-sm">🔗 Chia sẻ</button>
+        {/* ── Nút Chia sẻ mở modal ── */}
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowShareModal(true)}>
+          🔗 Chia sẻ
+        </button>
       </div>
 
+      {/* Comments section */}
       {showComments && (
         <div style={{ marginTop: 12 }}>
-          {/* ── Ô comment với hashtag/mention ── */}
           <div style={{ position: "relative", display: "flex", gap: 8, marginBottom: 12 }}>
             <div style={{ position: "relative", flex: 1 }}>
               <input
                 ref={commentRef}
                 value={commentText}
                 onChange={handleCommentChange}
-                onKeyDown={e => {
+                onKeyDown={(e) => {
                   if (e.key === "Escape") closeSuggestions();
                   if (e.key === "Enter") handleAddComment();
                 }}
@@ -299,23 +549,37 @@ export default function PostCard({ post, onUpdate, onDelete }) {
                 />
               )}
             </div>
-            <button onClick={handleAddComment} disabled={!commentText.trim() || submitting}
-              className="btn btn-primary btn-sm">
+            <button
+              onClick={handleAddComment}
+              disabled={!commentText.trim() || submitting}
+              className="btn btn-primary btn-sm"
+            >
               {submitting ? "..." : "Gửi"}
             </button>
           </div>
-          {/* ─────────────────────────────────── */}
 
-          {/* Giữ nguyên hoàn toàn */}
-          {comments.map((c) => (
-            <CommentItem key={c.id} comment={c} postId={post.id}
-              onReply={handleReplyToComment} onDelete={handleDeleteComment}
-              currentUserId={currentUserId} postAuthorId={post.author?.id} level={0}
-            />
-          ))}
+          {loadingComments ? (
+            <div style={{ textAlign: "center", color: "var(--text3)", padding: 12 }}>
+              Đang tải bình luận...
+            </div>
+          ) : (
+            comments.map((c) => (
+              <CommentItem
+                key={c.id}
+                comment={c}
+                postId={post.id}
+                onReply={handleReplyToComment}
+                onDelete={handleDeleteComment}
+                currentUserId={currentUserId}
+                postAuthorId={post.author?.id}
+                level={0}
+              />
+            ))
+          )}
         </div>
       )}
 
+      {/* Lightbox */}
       {showLightbox && (
         <ImageLightbox
           images={postImages}
@@ -325,14 +589,26 @@ export default function PostCard({ post, onUpdate, onDelete }) {
         />
       )}
 
+      {/* Confirm delete */}
       <ConfirmDeleteModal
         open={showConfirm}
         title={deleteType === "post" ? "Xóa bài viết?" : "Xóa bình luận?"}
         description="Không thể khôi phục nếu xác nhận xóa."
-        confirmText="Xóa" cancelText="Hủy" loading={deleting}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        loading={deleting}
         onCancel={() => setShowConfirm(false)}
         onConfirm={handleConfirmDelete}
       />
+
+      {/* Share modal */}
+      {showShareModal && (
+        <ShareModal
+          post={post}
+          onClose={() => setShowShareModal(false)}
+          onShared={handleShared}
+        />
+      )}
     </div>
   );
 }

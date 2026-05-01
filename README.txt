@@ -20,6 +20,7 @@ dotnet ef database update
 === quy trình chuẩn sau khi pull về, nếu database có sửa đổi như thêm bảng, thêm cột===
 git pull
 sửa các file bị conflict
+dotnet ef migrations add AddSharedPostToPost (Thêm cột sharePost)
 dotnet ef database update (để cập nhật sql)
 dotnet run
 npm run dev

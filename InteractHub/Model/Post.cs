@@ -28,6 +28,10 @@ public class Post
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    // Model/Post.cs - thêm các field sau
+    public Guid? SharedPostId { get; set; }
+    public Post? SharedPost { get; set; }  // Navigation property
+    
     // Navigation properties
     [ForeignKey("UserId")]
     public virtual ApplicationUser Author { get; set; } = null!;

@@ -52,7 +52,10 @@ export default function HashtagPage() {
   function handleDeletePost(postId) {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   }
-
+  function handleSharePost(newPost) {
+    setPosts((prev) => [newPost, ...prev.slice(0, 29)]);
+    toast("Đã chia sẻ bài viết!", "success");
+  }
   return (
     <div className="page">
       {/* Header */}
@@ -96,6 +99,7 @@ export default function HashtagPage() {
             post={p}
             onUpdate={handlePostUpdate}
             onDelete={handleDeletePost}
+            onShare={handleSharePost}
           />
         ))}
 

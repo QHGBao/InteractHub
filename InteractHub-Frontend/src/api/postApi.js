@@ -21,6 +21,14 @@ export const postApi = {
     return res.data;
   },
 
+  sharePost: async (postId, content) => {
+    const res = await axiosInstance.post("/posts", {
+      content,
+      sharedPostId: postId
+    });
+    return res.data;
+  },
+
   // PUT /api/posts/{postId}
   updatePost: async (postId, data) => {
     const res = await axiosInstance.put(`/posts/${postId}`, data);
