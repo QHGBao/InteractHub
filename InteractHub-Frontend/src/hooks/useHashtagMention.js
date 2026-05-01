@@ -3,8 +3,6 @@ import { useState, useCallback } from "react";
 import { searchHashtags } from "../services/hashtagService";
 import axiosInstance from "../api/axiosInstance";
 
-// ✅ FIX: gọi đúng endpoint /api/friend/list thay vì /friends?q=
-// Filter client-side vì endpoint không hỗ trợ ?q=
 async function fetchFriends(query) {
   try {
     const res = await axiosInstance.get("/friend/list");

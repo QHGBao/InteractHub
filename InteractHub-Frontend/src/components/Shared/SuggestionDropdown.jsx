@@ -1,4 +1,3 @@
-// Dropdown gợi ý dùng chung cho #hashtag và @mention
 
 export default function SuggestionDropdown({ suggestions, type, onSelect }) {
   if (!suggestions || suggestions.length === 0) return null;
@@ -9,7 +8,7 @@ export default function SuggestionDropdown({ suggestions, type, onSelect }) {
       top: "100%",
       left: 0,
       right: 0,
-      background: "var(--card)",
+      background: "var(--bg3)",
       border: "1px solid var(--border)",
       borderRadius: 10,
       boxShadow: "0 8px 24px rgba(0,0,0,.25)",
