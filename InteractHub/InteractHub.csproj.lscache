@@ -97,6 +97,8 @@ Migrations/
  20260430043003_AddCoverUrl.Designer.cs
  20260430051445_AddProfileFields.cs
  20260430051445_AddProfileFields.Designer.cs
+ 20260501062906_AddSharedPostToPost.cs
+ 20260501062906_AddSharedPostToPost.Designer.cs
  AppDbContextModelSnapshot.cs
 Model/
  ApplicationUser.cs
