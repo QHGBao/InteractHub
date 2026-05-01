@@ -8,6 +8,7 @@ namespace InteractHub.Service;
 public class HashtagService : IHashtagService
 {
     private readonly AppDbContext _context;
+
     public HashtagService(AppDbContext context)
     {
         _context = context;
@@ -25,8 +26,8 @@ public class HashtagService : IHashtagService
             .Take(top)
             .Select(h => new HashtagDto
             {
-                Id = h.Id,
-                Name = h.Name,
+                Id        = h.Id,
+                Name      = h.Name,
                 PostCount = h.PostCount,
                 IsFollowed = followedIds.Contains(h.Id)
             })
@@ -41,8 +42,8 @@ public class HashtagService : IHashtagService
             .OrderByDescending(uh => uh.Hashtag.PostCount)
             .Select(uh => new HashtagDto
             {
-                Id = uh.Hashtag.Id,
-                Name = uh.Hashtag.Name,
+                Id        = uh.Hashtag.Id,
+                Name      = uh.Hashtag.Name,
                 PostCount = uh.Hashtag.PostCount,
                 IsFollowed = true
             })
@@ -58,7 +59,6 @@ public class HashtagService : IHashtagService
             .FirstOrDefaultAsync(uh => uh.UserId == userId && uh.HashtagId == hashtagId);
 
         bool isFollowed;
-
         if (existing != null)
         {
             _context.UserHashtags.Remove(existing);
@@ -68,8 +68,8 @@ public class HashtagService : IHashtagService
         {
             _context.UserHashtags.Add(new UserHashtag
             {
-                UserId = userId,
-                HashtagId = hashtagId,
+                UserId     = userId,
+                HashtagId  = hashtagId,
                 FollowedAt = DateTime.UtcNow
             });
             isFollowed = true;
@@ -79,8 +79,8 @@ public class HashtagService : IHashtagService
 
         return new FollowHashtagResultDto
         {
-            HashtagId = hashtag.Id,
-            Name = hashtag.Name,
+            HashtagId  = hashtag.Id,
+            Name       = hashtag.Name,
             IsFollowed = isFollowed
         };
     }
@@ -100,22 +100,25 @@ public class HashtagService : IHashtagService
             .Take(10)
             .Select(h => new HashtagDto
             {
-                Id = h.Id,
-                Name = h.Name,
-                PostCount = h.PostCount,
+                Id         = h.Id,
+                Name       = h.Name,
+                PostCount  = h.PostCount,
                 IsFollowed = followedIds.Contains(h.Id)
             })
             .ToListAsync();
     }
 
-
-    public async Task<object> GetPostsByHashtagAsync(string tag, int page, int pageSize)
+    // ✅ Thêm userId — query liked postIds của user để map isLikedByCurrentUser
+    public async Task<object> GetPostsByHashtagAsync(string tag, int page, int pageSize, Guid userId)
     {
         var normalizedTag = tag.TrimStart('#').ToLower();
+
         var hashtag = await _context.Hashtags
             .FirstOrDefaultAsync(h => h.Name!.ToLower() == normalizedTag);
+
         if (hashtag == null)
             return new { posts = Array.Empty<object>(), totalPages = 0, totalCount = 0 };
+
         var query = _context.Posts
             .Where(p => !p.IsDeleted &&
                         p.Content != null &&
@@ -124,29 +127,40 @@ public class HashtagService : IHashtagService
             .OrderByDescending(p => p.CreatedAt);
 
         var totalCount = await query.CountAsync();
+
         var posts = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+
+        // ✅ Lấy danh sách postId mà userId đã like — dùng để set isLikedByCurrentUser
+        var postIds = posts.Select(p => p.Id).ToList();
+        var likedPostIds = await _context.Likes
+            .Where(l => l.UserId == userId && postIds.Contains(l.PostId))
+            .Select(l => l.PostId)
+            .ToHashSetAsync();
+
         var formattedPosts = posts.Select(p => new
         {
-            p.Id,
-            p.Content,
-            p.ImageUrl,
-            p.LikesCount,
-            p.CommentsCount,
-            createdAt = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
+            id                   = p.Id,
+            content              = p.Content,
+            imageUrl             = p.ImageUrl,
+            likesCount           = p.LikesCount,
+            commentsCount        = p.CommentsCount,
+            isLikedByCurrentUser = likedPostIds.Contains(p.Id), // ✅ thêm field này
+            createdAt            = DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc).ToString("o"),
             author = new
             {
-                id = p.Author.Id,
-                userName = p.Author.UserName,
+                id          = p.Author.Id,
+                userName    = p.Author.UserName,
                 displayName = p.Author.DisplayName,
-                avatarUrl = p.Author.AvatarUrl
+                avatarUrl   = p.Author.AvatarUrl
             }
         }).ToList();
+
         return new
         {
-            posts = formattedPosts,
+            posts      = formattedPosts,
             totalCount,
             page,
             pageSize,

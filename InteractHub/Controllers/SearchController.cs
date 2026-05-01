@@ -17,7 +17,6 @@ public class SearchController : ControllerBase
         _searchService = searchService;
     }
 
-    // GET /api/search/users?q=keyword
     [HttpGet("users")]
     public async Task<IActionResult> SearchUsers([FromQuery] string q)
     {
@@ -30,7 +29,6 @@ public class SearchController : ControllerBase
         return Ok(new { success = true, data = results });
     }
 
-    // GET /api/search/posts?q=keyword
     [HttpGet("posts")]
     public async Task<IActionResult> SearchPosts([FromQuery] string q)
     {

@@ -18,7 +18,6 @@ public class StoryController : ControllerBase
         _storyService = storyService;
     }
 
-    // GET /api/stories — lấy story của chính mình
     [HttpGet]
     public async Task<IActionResult> GetStories()
     {
@@ -29,7 +28,6 @@ public class StoryController : ControllerBase
         return Ok(new { success = true, data });
     }
 
-    // GET /api/stories/feed — story bản thân + bạn bè (dùng sau)
     [HttpGet("feed")]
     public async Task<IActionResult> GetFeed()
     {
@@ -40,7 +38,6 @@ public class StoryController : ControllerBase
         return Ok(new { success = true, data });
     }
 
-    // POST /api/stories
     [HttpPost]
     public async Task<IActionResult> CreateStory([FromForm] CreateStoryDto dto)
     {
@@ -54,7 +51,6 @@ public class StoryController : ControllerBase
         return Ok(new { success = true, data = result });
     }
 
-    // DELETE /api/stories/{id}
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteStory(Guid id)
     {

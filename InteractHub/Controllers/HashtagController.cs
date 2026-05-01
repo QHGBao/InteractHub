@@ -17,27 +17,27 @@ public class HashtagsController : ControllerBase
         _hashtagService = hashtagService;
     }
 
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
     [HttpGet("trending")]
     public async Task<IActionResult> GetTrending([FromQuery] int top = 10)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var data = await _hashtagService.GetTrendingAsync(userId, top);
+        var data = await _hashtagService.GetTrendingAsync(GetUserId(), top);
         return Ok(new { success = true, data });
     }
 
     [HttpGet("followed")]
     public async Task<IActionResult> GetFollowed()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var data = await _hashtagService.GetFollowedAsync(userId);
+        var data = await _hashtagService.GetFollowedAsync(GetUserId());
         return Ok(new { success = true, data });
     }
 
     [HttpPost("{id}/follow")]
     public async Task<IActionResult> ToggleFollow(Guid id)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _hashtagService.ToggleFollowAsync(userId, id);
+        var result = await _hashtagService.ToggleFollowAsync(GetUserId(), id);
         return Ok(new { success = true, data = result });
     }
 
@@ -47,18 +47,17 @@ public class HashtagsController : ControllerBase
         if (string.IsNullOrWhiteSpace(q))
             return Ok(new { success = true, data = Array.Empty<object>() });
 
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var data = await _hashtagService.SearchAsync(q, userId);
+        var data = await _hashtagService.SearchAsync(q, GetUserId());
         return Ok(new { success = true, data });
     }
-    
+
     [HttpGet("{tag}/posts")]
     public async Task<IActionResult> GetPostsByHashtag(
         string tag,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var data = await _hashtagService.GetPostsByHashtagAsync(tag, page, pageSize);
+        var data = await _hashtagService.GetPostsByHashtagAsync(tag, page, pageSize, GetUserId());
         return Ok(new { success = true, data });
     }
 }

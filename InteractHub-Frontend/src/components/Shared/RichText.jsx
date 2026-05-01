@@ -9,7 +9,6 @@ export default function RichText({ text, style = {} }) {
 
   if (!text) return null;
 
-  // Tách text thành các token: #hashtag, @mention, và text thường
   const parts = [];
   const regex = /(#\w+|@\w+)/g;
   let lastIndex = 0;
@@ -19,14 +18,12 @@ export default function RichText({ text, style = {} }) {
     if (match.index > lastIndex) {
       parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
     }
-
     const token = match[0];
     if (token.startsWith("#")) {
       parts.push({ type: "hashtag", value: token });
     } else {
       parts.push({ type: "mention", value: token });
     }
-
     lastIndex = regex.lastIndex;
   }
 
@@ -35,17 +32,13 @@ export default function RichText({ text, style = {} }) {
   }
 
   function handleHashtagClick(e, value) {
-    // Ngăn event nổi lên PostCard (không mở modal post khi nhấn hashtag)
     e.stopPropagation();
-    // Bỏ dấu # rồi navigate, vd: "#Python" → "/hashtag/python"
     const tag = value.slice(1).toLowerCase();
     navigate(`/hashtag/${tag}`);
   }
 
   function handleMentionClick(e, value) {
     e.stopPropagation();
-    // Bỏ dấu @ rồi navigate, vd: "@nguyen" → "/profile/nguyen"
-    // Backend sẽ tìm user theo userName
     const username = value.slice(1);
     navigate(`/profile/${username}`);
   }
@@ -58,11 +51,7 @@ export default function RichText({ text, style = {} }) {
             <span
               key={i}
               onClick={(e) => handleHashtagClick(e, part.value)}
-              style={{
-                color: "var(--primary, #6366f1)",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
+              style={{ color: "var(--primary, #6366f1)", fontWeight: 500, cursor: "pointer" }}
             >
               {part.value}
             </span>
@@ -73,11 +62,7 @@ export default function RichText({ text, style = {} }) {
             <span
               key={i}
               onClick={(e) => handleMentionClick(e, part.value)}
-              style={{
-                color: "#0ea5e9",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
+              style={{ color: "#0ea5e9", fontWeight: 500, cursor: "pointer" }}
             >
               {part.value}
             </span>

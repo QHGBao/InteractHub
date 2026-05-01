@@ -33,7 +33,6 @@ export default function HashtagPage() {
     try {
       setLoading(true);
       const res = await getPostsByHashtag(tag, page, 20);
-      // Backend trả về { success, data: { posts, totalPages } }
       setPosts(res.data?.posts || []);
       setTotalPage(res.data?.totalPages || 1);
     } catch (err) {
