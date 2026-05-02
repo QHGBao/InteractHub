@@ -187,11 +187,7 @@ export default function ProfilePage() {
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
-              {isOwn ? (
-                <button className="btn btn-ghost btn-sm">
-                  <Icon name="edit" size={14} /> Chỉnh sửa
-                </button>
-              ) : (
+              {isOwn ? null : (
                 <>
                   {friendStatus === "Friend" ? (
                     <button

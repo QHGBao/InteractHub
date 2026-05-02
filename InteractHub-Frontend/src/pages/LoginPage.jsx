@@ -124,15 +124,7 @@ export default function LoginPage() {
           </div>
 
           <div style={{textAlign:'right',marginTop:4}}>
-            <span
-              style={{
-                fontSize:12,
-                color:'var(--accent2)',
-                cursor:'pointer'
-              }}
-            >
-              Quên mật khẩu?
-            </span>
+           
           </div>
 
         </div>
