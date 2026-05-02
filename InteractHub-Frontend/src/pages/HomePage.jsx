@@ -293,56 +293,6 @@ export default function HomePage() {
               })}
           </div>
 
-          {/* ── Friend Suggestions Widget ── */}
-          <div className="card widget">
-            <div className="widget-title">👥 Gợi ý kết bạn</div>
-
-            {Array.isArray(suggestions) &&
-              suggestions.map((u) => (
-                <div
-                  key={u.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 12,
-                  }}
-                >
-                  <Avatar user={u} size="sm" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {u.displayName || u.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text3)" }}>
-                      {u.mutual > 0
-                        ? `${u.mutual} bạn chung`
-                        : "Gợi ý cho bạn"}
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() =>
-                      toast(
-                        `Đã gửi lời mời đến ${u.displayName || u.name}!`,
-                        "success"
-                      )
-                    }
-                    title="Kết bạn"
-                  >
-                    + Kết bạn
-                  </button>
-                </div>
-              ))}
-          </div>
-
         </div>
       </div>
     </div>
