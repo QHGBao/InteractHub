@@ -8,10 +8,12 @@ namespace InteractHub.Service;
 public class FriendService : IFriendService
 {
     private readonly AppDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public FriendService(AppDbContext db)
+    public FriendService(AppDbContext db, INotificationService notificationService)
     {
         _db = db;
+        _notificationService = notificationService;
     }
 
     // Danh sách bạn bè (Status = Accepted)
@@ -31,11 +33,11 @@ public class FriendService : IFriendService
             return new FriendResponseDto
             {
                 FriendshipId = f.Id,
-                UserId       = friend.Id,
-                DisplayName  = friend.DisplayName,
-                AvatarUrl    = friend.AvatarUrl,
-                Status       = f.Status,
-                CreatedAt    = f.CreatedAt
+                UserId = friend.Id,
+                DisplayName = friend.DisplayName,
+                AvatarUrl = friend.AvatarUrl,
+                Status = f.Status,
+                CreatedAt = f.CreatedAt
             };
         }).ToList();
     }
@@ -51,11 +53,11 @@ public class FriendService : IFriendService
         return requests.Select(f => new FriendResponseDto
         {
             FriendshipId = f.Id,
-            UserId       = f.Requester.Id,
-            DisplayName  = f.Requester.DisplayName,
-            AvatarUrl    = f.Requester.AvatarUrl,
-            Status       = f.Status,
-            CreatedAt    = f.CreatedAt
+            UserId = f.Requester.Id,
+            DisplayName = f.Requester.DisplayName,
+            AvatarUrl = f.Requester.AvatarUrl,
+            Status = f.Status,
+            CreatedAt = f.CreatedAt
         }).ToList();
     }
 
@@ -78,11 +80,11 @@ public class FriendService : IFriendService
         return suggestions.Select(u => new FriendResponseDto
         {
             FriendshipId = Guid.Empty,
-            UserId       = u.Id,
-            DisplayName  = u.DisplayName,
-            AvatarUrl    = u.AvatarUrl,
-            Status       = "None",
-            CreatedAt    = DateTime.UtcNow
+            UserId = u.Id,
+            DisplayName = u.DisplayName,
+            AvatarUrl = u.AvatarUrl,
+            Status = "None",
+            CreatedAt = DateTime.UtcNow
         }).ToList();
     }
 
@@ -101,10 +103,21 @@ public class FriendService : IFriendService
         {
             RequesterId = requesterId,
             AddresseeId = addresseeId,
-            Status      = "Pending"
+            Status = "Pending"
         });
 
         await _db.SaveChangesAsync();
+
+        // Lấy tên người gửi để hiển thị trong thông báo
+        var requester = await _db.Users.FindAsync(requesterId);
+
+        // Gửi thông báo real-time cho người nhận
+        await _notificationService.CreateAndSendAsync(
+            userId: addresseeId,
+            actorId: requesterId,
+            type: "FriendRequest",
+            message: $"{requester?.DisplayName} đã gửi lời mời kết bạn cho bạn"
+        );
     }
 
     // Chấp nhận lời mời
@@ -114,10 +127,20 @@ public class FriendService : IFriendService
             .FirstOrDefaultAsync(f => f.Id == friendshipId && f.AddresseeId == userId)
             ?? throw new Exception("Không tìm thấy lời mời.");
 
-        friendship.Status    = "Accepted";
+        friendship.Status = "Accepted";
         friendship.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+
+        // Thông báo cho người gửi lời mời biết đã được chấp nhận
+        var accepter = await _db.Users.FindAsync(userId);
+
+        await _notificationService.CreateAndSendAsync(
+            userId: friendship.RequesterId,
+            actorId: userId,
+            type: "FriendAccepted",
+            message: $"{accepter?.DisplayName} đã chấp nhận lời mời kết bạn của bạn"
+        );
     }
 
     // Từ chối / xóa lời mời
@@ -143,4 +166,6 @@ public class FriendService : IFriendService
         _db.Friendships.Remove(friendship);
         await _db.SaveChangesAsync();
     }
+
+
 }

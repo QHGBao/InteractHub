@@ -39,5 +39,11 @@ export const postApi = {
   deletePost: async (postId) => {
     const res = await axiosInstance.delete(`/posts/${postId}`);
     return res.data;
-  }
+  },
+
+  // POST /api/postreports — người dùng báo cáo bài viết
+  reportPost: async (postId, reason) => {
+    const res = await axiosInstance.post("/postreports", { postId, reason });
+    return res.data;
+  },
 };

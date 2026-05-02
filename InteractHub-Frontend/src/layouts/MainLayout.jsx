@@ -16,11 +16,13 @@ const PAGE_TITLES = {
   '/settings': 'Cài đặt',
   '/profile': 'Trang cá nhân',
   '/search': 'Tìm kiếm',
+  '/admin/reports': 'Báo cáo bài viết',
+  '/admin/users': 'Quản lý người dùng',
 };
 
 const MainLayout = () => {
   const { user, logout } = useAuth();
-  const { toast, toasts } = useApp(); // 👈 thêm toasts
+  const { toast, toasts } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchVal, setSearchVal] = useState('');
@@ -35,10 +37,14 @@ const MainLayout = () => {
     '/notifications': 'notifications',
     '/settings': 'settings',
     '/search': 'search',
+    '/admin/reports': 'admin-reports',
+    '/admin/users': 'admin-users',
   };
 
   const currentPage = location.pathname.startsWith('/profile')
     ? 'profile'
+    : location.pathname.startsWith('/admin')
+    ? (pathToPage[location.pathname] || 'admin-reports')
     : (pathToPage[location.pathname] || 'home');
 
   function handleNavigate(pageId) {
@@ -49,7 +55,8 @@ const MainLayout = () => {
       notifications: '/notifications',
       profile: `/profile/${user?.userId}`,
       settings: '/settings',
-      admin: '/admin',
+      'admin-reports': '/admin/reports',
+      'admin-users': '/admin/users',
     };
     navigate(pageToPath[pageId] || '/');
     setSidebarOpen(false);
@@ -74,12 +81,14 @@ const MainLayout = () => {
         />
       )}
 
+      {/* Sidebar nhận thêm isAdmin để tự render nav item Admin */}
       <Sidebar
         page={currentPage}
         currentUser={user}
         onNavigate={handleNavigate}
         sidebarOpen={sidebarOpen}
         onLogout={handleLogout}
+        isAdmin={user?.role === 'Admin'}
       />
 
       <div className="main">

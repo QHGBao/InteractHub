@@ -6,6 +6,7 @@ import CommentItem from "./CommentItem";
 import ImageLightbox from "./ImageLightBox";
 import RichText from "./RichText";
 import SuggestionDropdown from "./SuggestionDropdown";
+import ReportModal from "./ReportModal";
 
 import { postApi } from "../../api/postApi";
 import { commentApi } from "../../api/commentApi";
@@ -14,6 +15,7 @@ import { likeApi } from "../../api/likeApi";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useHashtagMention } from "../../hooks/useHashtagMention";
+import axiosInstance from '../../api/axiosInstance';
 
 // ── Embedded post (bài gốc được nhúng vào) ──────────────────────────────────
 function EmbeddedPost({ sharedPost, onImageClick }) {
@@ -36,11 +38,20 @@ function EmbeddedPost({ sharedPost, onImageClick }) {
       }}
     >
       {/* Author row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 8,
+        }}
+      >
         <Avatar user={sharedPost.author} size={32} />
         <div>
           <div style={{ fontWeight: 600, fontSize: 13 }}>
-            {sharedPost.author?.userName || sharedPost.author?.displayName || "Unknown"}
+            {sharedPost.author?.userName ||
+              sharedPost.author?.displayName ||
+              "Unknown"}
           </div>
           <div style={{ fontSize: 11, color: "var(--text3)" }}>
             {new Date(sharedPost.createdAt).toLocaleString("vi-VN", {
@@ -87,10 +98,15 @@ function EmbeddedPost({ sharedPost, onImageClick }) {
               {i === 1 && images.length > 2 && (
                 <div
                   style={{
-                    position: "absolute", inset: 0,
-                    background: "rgba(0,0,0,0.6)", color: "#fff",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 22, fontWeight: 700,
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 22,
+                    fontWeight: 700,
                   }}
                 >
                   +{images.length - 2}
@@ -114,6 +130,16 @@ function ShareModal({ post, onClose, onShared }) {
     try {
       setSubmitting(true);
       const newPost = await postApi.sharePost(post.id, shareText);
+
+      // Chỉ gửi thông báo nếu share bài của người KHÁC
+      if (post.author?.id !== user?.userId) {
+        await axiosInstance.post("/notifications/share", {
+          postId: post.id,
+          newPostId: newPost.id,
+          postOwnerId: post.author?.id,
+        });
+      }
+
       onShared && onShared(newPost);
       onClose();
     } catch (err) {
@@ -123,7 +149,6 @@ function ShareModal({ post, onClose, onShared }) {
     }
   }
 
-  // Đóng khi click backdrop
   function handleBackdropClick(e) {
     if (e.target === e.currentTarget) onClose();
   }
@@ -161,7 +186,9 @@ function ShareModal({ post, onClose, onShared }) {
             marginBottom: 14,
           }}
         >
-          <span style={{ fontWeight: 700, fontSize: 16 }}>Chia sẻ bài viết</span>
+          <span style={{ fontWeight: 700, fontSize: 16 }}>
+            Chia sẻ bài viết
+          </span>
           <button className="btn btn-ghost btn-xs" onClick={onClose}>
             ✕
           </button>
@@ -172,7 +199,7 @@ function ShareModal({ post, onClose, onShared }) {
           autoFocus
           value={shareText}
           onChange={(e) => setShareText(e.target.value)}
-          placeholder="Thêm suy nghĩ của bạn... (tuỳ chọn)"
+          placeholder="Thêm suy nghĩ của bạn..."
           rows={3}
           style={{
             width: "100%",
@@ -192,7 +219,14 @@ function ShareModal({ post, onClose, onShared }) {
         <EmbeddedPost sharedPost={post} />
 
         {/* Actions */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+            marginTop: 14,
+          }}
+        >
           <button className="btn btn-ghost btn-sm" onClick={onClose}>
             Hủy
           </button>
@@ -240,9 +274,16 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
   const [sharedPostLightbox, setSharedPostLightbox] = useState(null);
   const [sharedPostLightboxIndex, setSharedPostLightboxIndex] = useState(0);
 
+  const [showReportModal, setShowReportModal] = useState(false);
+
   const commentRef = useRef(null);
-  const { suggestions, suggestionType, handleTextChange, applySuggestion, closeSuggestions } =
-    useHashtagMention();
+  const {
+    suggestions,
+    suggestionType,
+    handleTextChange,
+    applySuggestion,
+    closeSuggestions,
+  } = useHashtagMention();
 
   const currentUserId = user?.userId;
   const isPostOwner = String(currentUserId) === String(post.author?.id);
@@ -253,11 +294,13 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) setShowMenu(false);
+      if (menuRef.current && !menuRef.current.contains(event.target))
+        setShowMenu(false);
     }
     if (showMenu) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showMenu]);
 
@@ -293,7 +336,12 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
   function handleSelectSuggestion(item) {
     const textarea = commentRef.current;
     const cur = textarea?.selectionStart ?? commentText.length;
-    const { newText, newCursor } = applySuggestion(commentText, cur, item, suggestionType);
+    const { newText, newCursor } = applySuggestion(
+      commentText,
+      cur,
+      item,
+      suggestionType,
+    );
     setCommentText(newText);
     closeSuggestions();
     setTimeout(() => {
@@ -306,7 +354,10 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
     if (!commentText.trim()) return;
     try {
       setSubmitting(true);
-      await commentApi.createComment(post.id, { content: commentText, parentCommentId: null });
+      await commentApi.createComment(post.id, {
+        content: commentText,
+        parentCommentId: null,
+      });
       await loadComments();
       setCommentsCount((prev) => prev + 1);
       setCommentText("");
@@ -373,7 +424,6 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
     setShowLightbox(true);
   }
 
-  // Callback khi share thành công → báo lên parent để prepend post mới
   function handleShared(newPost) {
     onShare && onShare(newPost);
   }
@@ -382,7 +432,10 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
     <div className="card post-card">
       {/* Header */}
       <div className="post-header">
-        <div onClick={() => navigate(`/profile/${post.author?.id}`)} style={{ cursor: "pointer" }}>
+        <div
+          onClick={() => navigate(`/profile/${post.author?.id}`)}
+          style={{ cursor: "pointer" }}
+        >
           <Avatar user={post.author} />
         </div>
         <div style={{ flex: 1 }}>
@@ -393,31 +446,42 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
             {post.author?.userName || post.author?.displayName || "Unknown"}
           </div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>
-            {new Date(post.createdAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
+            {new Date(post.createdAt).toLocaleString("vi-VN", {
+              timeZone: "Asia/Ho_Chi_Minh",
+            })}
           </div>
         </div>
-        {isPostOwner && (
-          <div style={{ position: "relative" }} ref={menuRef}>
-            <button className="btn btn-ghost btn-xs" onClick={() => setShowMenu(!showMenu)}>
-              <Icon name="more" />
-            </button>
-            {showMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "var(--bg3)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  marginTop: 4,
-                  minWidth: 150,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                  zIndex: 10,
-                }}
-              >
+
+        {/* Menu ··· — chủ bài thấy "Xóa", người khác thấy "Báo cáo" */}
+        <div style={{ position: "relative" }} ref={menuRef}>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <Icon name="more" />
+          </button>
+          {showMenu && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                background: "var(--bg3)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                marginTop: 4,
+                minWidth: 150,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                zIndex: 10,
+              }}
+            >
+              {isPostOwner ? (
+                // Chủ bài: chỉ thấy nút Xóa
                 <button
-                  onClick={() => { openDeletePost(); setShowMenu(false); }}
+                  onClick={() => {
+                    openDeletePost();
+                    setShowMenu(false);
+                  }}
                   style={{
                     width: "100%",
                     padding: "10px 14px",
@@ -433,10 +497,32 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
                   <Icon name="trash" size={14} />
                   Xóa bài viết
                 </button>
-              </div>
-            )}
-          </div>
-        )}
+              ) : (
+                // Người khác: chỉ thấy nút Báo cáo
+                <button
+                  onClick={() => {
+                    setShowReportModal(true);
+                    setShowMenu(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    color: "var(--text2)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Icon name="flag" size={14} />
+                  Báo cáo bài viết
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -468,12 +554,13 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
         />
       )}
 
-      {/* Images của bài hiện tại (chỉ render nếu không phải share-only) */}
+      {/* Images của bài hiện tại */}
       {postImages.length > 0 && (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: postImages.length === 1 ? "1fr" : "repeat(2, 1fr)",
+            gridTemplateColumns:
+              postImages.length === 1 ? "1fr" : "repeat(2, 1fr)",
             gap: 4,
             marginBottom: 12,
             borderRadius: 8,
@@ -524,7 +611,14 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
       )}
 
       {/* Action bar */}
-      <div style={{ display: "flex", gap: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          paddingTop: 12,
+          borderTop: "1px solid var(--border)",
+        }}
+      >
         <button
           onClick={handleLike}
           className="btn btn-ghost btn-sm"
@@ -532,11 +626,16 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
         >
           {liked ? "❤️" : "🤍"} {likesCount}
         </button>
-        <button onClick={() => setShowComments((prev) => !prev)} className="btn btn-ghost btn-sm">
+        <button
+          onClick={() => setShowComments((prev) => !prev)}
+          className="btn btn-ghost btn-sm"
+        >
           💬 {commentsCount}
         </button>
-        {/* ── Nút Chia sẻ mở modal ── */}
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowShareModal(true)}>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => setShowShareModal(true)}
+        >
           🔗 Chia sẻ
         </button>
       </div>
@@ -544,7 +643,14 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
       {/* Comments section */}
       {showComments && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ position: "relative", display: "flex", gap: 8, marginBottom: 12 }}>
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              gap: 8,
+              marginBottom: 12,
+            }}
+          >
             <div style={{ position: "relative", flex: 1 }}>
               <input
                 ref={commentRef}
@@ -576,7 +682,13 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
           </div>
 
           {loadingComments ? (
-            <div style={{ textAlign: "center", color: "var(--text3)", padding: 12 }}>
+            <div
+              style={{
+                textAlign: "center",
+                color: "var(--text3)",
+                padding: 12,
+              }}
+            >
               Đang tải bình luận...
             </div>
           ) : (
@@ -625,6 +737,11 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
           onClose={() => setShowShareModal(false)}
           onShared={handleShared}
         />
+      )}
+
+      {/* Report modal */}
+      {showReportModal && (
+        <ReportModal postId={post.id} onClose={() => setShowReportModal(false)} />
       )}
     </div>
   );

@@ -2,6 +2,8 @@ import Avatar from "./Avatar";
 import Icon from "./Icon";
 
 export default function Sidebar({ page, currentUser, onNavigate, sidebarOpen, onLogout }) {
+  const isAdminPage = page === 'admin-reports' || page === 'admin-users';
+
   const NAV = [
     {
       section: "Menu",
@@ -17,11 +19,13 @@ export default function Sidebar({ page, currentUser, onNavigate, sidebarOpen, on
       items: [
         { id: "profile",  icon: "user",     label: "Trang cá nhân" },
         { id: "settings", icon: "settings", label: "Cài đặt" },
-        ...(currentUser?.role === "Admin"
-          ? [{ id: "admin", icon: "shield", label: "Admin" }]
-          : []),
       ],
     },
+  ];
+
+  const ADMIN_NAV = [
+    { id: "admin-reports", icon: "flag",   label: "Báo cáo bài viết" },
+    { id: "admin-users",   icon: "shield", label: "Quản lý người dùng" },
   ];
 
   return (
@@ -48,6 +52,23 @@ export default function Sidebar({ page, currentUser, onNavigate, sidebarOpen, on
             ))}
           </div>
         ))}
+
+        {/* Admin section — chỉ hiện với Role Admin */}
+        {currentUser?.role === 'Admin' && (
+          <div className="nav-section">
+            <div className="nav-section-title">Admin</div>
+            {ADMIN_NAV.map(item => (
+              <div
+                key={item.id}
+                className={`nav-item ${page === item.id ? 'active' : ''}`}
+                onClick={() => onNavigate(item.id)}
+              >
+                <Icon name={item.icon} size={18} />
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </nav>
 
       <div className="sidebar-user">
@@ -59,7 +80,6 @@ export default function Sidebar({ page, currentUser, onNavigate, sidebarOpen, on
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent3)' }} />
       </div>
 
-      {/* ✅ Thêm nút logout */}
       {onLogout && (
         <button
           className="btn btn-ghost btn-sm"

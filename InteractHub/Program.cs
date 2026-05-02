@@ -34,6 +34,7 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IStoryService,StoryService>();
 builder.Services.AddScoped<IHashtagService, HashtagService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -107,4 +108,31 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+ 
+    foreach (var roleName in new[] { "User", "Admin" })
+    {
+        if (!await roleManager.RoleExistsAsync(roleName))
+            await roleManager.CreateAsync(new IdentityRole<Guid>(roleName));
+    }
+}
+// XOÁ SAU KHI TEST
+app.MapGet("/dev/seed-admin", async (UserManager<ApplicationUser> um, RoleManager<IdentityRole<Guid>> rm) =>
+{
+    var email = "admin@test.com";
+    if (!await rm.RoleExistsAsync("Admin"))
+        await rm.CreateAsync(new IdentityRole<Guid>("Admin"));
+
+    var user = await um.FindByEmailAsync(email);
+    if (user == null)
+    {
+        user = new ApplicationUser { UserName = email, Email = email, DisplayName = "Admin", Role = "Admin" };
+        await um.CreateAsync(user, "Admin123!");
+    }
+
+    await um.AddToRoleAsync(user, "Admin");
+    return Results.Ok(new { message = "Admin created", email, password = "Admin123!" });
+});
 app.Run();

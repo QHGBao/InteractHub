@@ -56,31 +56,37 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 
 [sourceFiles]
 Controllers/
+ AdminController.cs
  AuthController.cs
  CommentsController.cs
  FriendController.cs
  HashtagController.cs
  LikesController.cs
  NotificationsController.cs
+ PostReportsController.cs
  PostsController.cs
  SearchController.cs
  StoryController.cs
  UploadController.cs
  UserController.cs
 Data/AppDbContext.cs
-DTOs/Auth/
- AuthResponseDto.cs
- LoginDto.cs
- RegisterDto.cs
-DTOs/Friend/
- FriendRequestDto.cs
- FriendResponseDto.cs
 DTOs/
+ Admin/PostReportDto.cs
+ Auth/
+  AuthResponseDto.cs
+  LoginDto.cs
+  RegisterDto.cs
+ Friend/
+  FriendRequestDto.cs
+  FriendResponseDto.cs
  Hashtag/HashtagDto.cs
- Notification/NotificationDto.cs
+ Notification/
+  NotificationDto.cs
+  ShareNotificationDto.cs
  Post/
   CommentDto.cs
   PostDto.cs
+ ResolveReportDto/AdminUserDto.cs
  Search/SearchResultDto.cs
  Story/
   CreateStoryDto.cs
@@ -118,10 +124,12 @@ obj/Debug/net10.0/
  InteractHub.GlobalUsings.g.cs
 Program.cs
 Service/
+ AdminService.cs
  AuthService.cs
  CommentService.cs
  FriendService.cs
  HashtagService.cs
+ IAdminService.cs
  IAuthService.cs
  ICommentService.cs
  IFriendService.cs

@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import Avatar from "../components/Shared/Avatar";
 import { getFriends, getRequests, getSuggestions, acceptFriend, rejectFriend, unfriend, sendRequest } from "../api/friendApi";
+
 
 export default function FriendsPage() {
   const app = useApp();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState("friends");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'friends');
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
   const [suggestions, setSuggestions] = useState([]);

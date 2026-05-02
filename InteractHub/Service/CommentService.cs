@@ -78,23 +78,25 @@ public class CommentService : ICommentService
         var actor = await _context.Users.FindAsync(userId);
         var actorName = actor?.DisplayName ?? "Ai đó";
 
-        // Thông báo cho chủ bài
-        if (post.UserId != userId && !dto.ParentCommentId.HasValue)
+        if (post.UserId != userId)
         {
             await _notificationService.CreateAndSendAsync(
                 userId: post.UserId,
                 actorId: userId,
                 type: "Comment",
-                message: $"{actorName} đã bình luận về bài viết của bạn",
+                message: dto.ParentCommentId.HasValue
+                    ? $"{actorName} đã trả lời bình luận trong bài viết của bạn"
+                    : $"{actorName} đã bình luận về bài viết của bạn",
                 referenceId: postId
             );
         }
 
-        // Thông báo cho chủ comment cha
         if (dto.ParentCommentId.HasValue)
         {
             var parentComment = await _context.Comments.FindAsync(dto.ParentCommentId.Value);
-            if (parentComment != null && parentComment.UserId != userId)
+            if (parentComment != null
+                && parentComment.UserId != userId       // không tự notify mình
+                && parentComment.UserId != post.UserId) // B đã nhận TB ở block 1, không gửi trùng
             {
                 await _notificationService.CreateAndSendAsync(
                     userId: parentComment.UserId,

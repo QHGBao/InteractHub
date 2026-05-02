@@ -32,9 +32,9 @@ public class PostsController : ControllerBase
     public async Task<ActionResult<object>> GetPosts(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
-    {   
+    {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _postService.GetPosts(userId ,page, pageSize);
+        var result = await _postService.GetPosts(userId, page, pageSize);
         if (result == null) return NotFound(new { message = "Page Not Found" });
         return Ok(result);
     }
@@ -44,6 +44,7 @@ public class PostsController : ControllerBase
     public async Task<ActionResult<object>> GetPost(Guid id)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        // var userId = Guid.Parse("964716ec-9f1c-4c7b-25fe-08dea745d337");
         var result = await _postService.GetPost(id, userId);
         return Ok(result);
     }
