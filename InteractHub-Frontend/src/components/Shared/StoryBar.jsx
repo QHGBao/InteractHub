@@ -91,7 +91,7 @@ function CreateStoryModal({ onClose, onCreated }) {
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,.7)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-      <div style={{ background:"#ffffff", color:"#111", borderRadius:16, width:"100%", maxWidth:500, boxShadow:"0 24px 60px rgba(0,0,0,.6)" }}>
+      <div style={{ background:"#98969e", color:"#111", borderRadius:16, width:"100%", maxWidth:500, boxShadow:"0 24px 60px rgba(0,0,0,.6)" }}>
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 20px", borderBottom:"1px solid #e0e0e0" }}>
           <h2 style={{ fontFamily:"var(--font-head)", fontSize:17, fontWeight:700, margin:0, color:"#111" }}>Tạo story mới</h2>
@@ -105,18 +105,18 @@ function CreateStoryModal({ onClose, onCreated }) {
           <div style={{ flex:1, display:"flex", flexDirection:"column", gap:14 }}>
             {/* Text */}
             <div>
-              <label style={{ fontSize:12, color:"#666", display:"block", marginBottom:6 }}>Nội dung</label>
+              <label style={{ fontSize:12, color:"#111", display:"block", marginBottom:6 }}>Nội dung</label>
               <textarea
                 value={text} onChange={e => setText(e.target.value)}
                 placeholder="Bạn đang nghĩ gì?" maxLength={200} rows={3}
                 style={{ width:"100%", padding:"10px 12px", borderRadius:10, border:"1px solid #ddd", background:"#f5f5f5", color:"#111", fontSize:14, resize:"none", outline:"none", boxSizing:"border-box", lineHeight:1.5 }}
               />
-              <div style={{ fontSize:11, color:"#999", textAlign:"right", marginTop:2 }}>{text.length}/200</div>
+              <div style={{ fontSize:11, color:"#111", textAlign:"right", marginTop:2 }}>{text.length}/200</div>
             </div>
 
             {/* Ảnh */}
             <div>
-              <label style={{ fontSize:12, color:"#666", display:"block", marginBottom:6 }}>Hình ảnh (tuỳ chọn)</label>
+              <label style={{ fontSize:12, color:"#111", display:"block", marginBottom:6 }}>Hình ảnh (tuỳ chọn)</label>
               {imagePreview ? (
                 <div style={{ position:"relative" }}>
                   <img src={imagePreview} alt="preview" style={{ width:"100%", maxHeight:120, objectFit:"cover", borderRadius:8 }} />
@@ -134,7 +134,7 @@ function CreateStoryModal({ onClose, onCreated }) {
 
             {/* Màu nền */}
             <div>
-              <label style={{ fontSize:12, color:"#666", display:"block", marginBottom:8 }}>
+              <label style={{ fontSize:12, color:"#111", display:"block", marginBottom:8 }}>
                 Màu nền {imagePreview && <span style={{ color:"#aaa", fontWeight:400 }}>(dùng khi không có ảnh)</span>}
               </label>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
@@ -147,7 +147,7 @@ function CreateStoryModal({ onClose, onCreated }) {
 
           {/* Preview */}
           <div style={{ flexShrink:0, width:100 }}>
-            <div style={{ fontSize:12, color:"#666", marginBottom:8 }}>Xem trước</div>
+            <div style={{ fontSize:12, color:"#111", marginBottom:8 }}>Xem trước</div>
             <div style={{ width:100, aspectRatio:"9/16", borderRadius:12, background:previewBg, display:"flex", alignItems:"center", justifyContent:"center", padding:8, textAlign:"center", overflow:"hidden" }}>
               <div style={{ fontSize:10, color:"rgba(255,255,255,.9)", lineHeight:1.4, wordBreak:"break-word" }}>
                 {text || "Nội dung story..."}

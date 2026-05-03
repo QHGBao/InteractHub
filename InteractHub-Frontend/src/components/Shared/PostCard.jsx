@@ -168,7 +168,7 @@ function ShareModal({ post, onClose, onShared }) {
     >
       <div
         style={{
-          background: "var(--bg1)",
+          background: "#453d5b",
           border: "1px solid var(--border)",
           borderRadius: 14,
           width: "100%",
@@ -661,7 +661,7 @@ export default function PostCard({ post, onUpdate, onDelete, onShare }) {
                   if (e.key === "Enter") handleAddComment();
                 }}
                 onBlur={() => setTimeout(closeSuggestions, 150)}
-                placeholder="Viết bình luận... (@ tag bạn bè, # hashtag)"
+                placeholder="Viết bình luận..."
                 style={{ width: "100%", boxSizing: "border-box" }}
               />
               {suggestions.length > 0 && (
