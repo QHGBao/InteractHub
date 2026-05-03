@@ -2,7 +2,7 @@ using System.Security.Claims;
 using InteractHub.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using InteractHub.DTOs;              
+using InteractHub.DTOs;
 using InteractHub.Model;
 using Microsoft.AspNetCore.Identity;
 
@@ -10,7 +10,7 @@ namespace InteractHub.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] 
+[Authorize]
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
@@ -30,7 +30,7 @@ public class NotificationsController : ControllerBase
     public async Task<IActionResult> GetNotifications()
     {
         try
-        {   
+        {
             var result = await _notificationService.GetNotificationsAsync(GetUserId());
             return Ok(new { success = true, data = result });
         }
@@ -115,17 +115,4 @@ public class NotificationsController : ControllerBase
         }
     }
 
-    [HttpPost("test")]
-    public async Task<IActionResult> TestNotification()
-    {
-        var userId = GetUserId();
-        await _notificationService.CreateAndSendAsync(
-            userId: userId,
-            actorId: null,
-            type: "Like",
-            message: "Đây là thông báo test!",
-            referenceId: null
-        );
-        return Ok(new { success = true, message = "Đã tạo thông báo!" });
-    }
 }
