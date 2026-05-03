@@ -10,7 +10,7 @@ namespace InteractHub.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize] 
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
