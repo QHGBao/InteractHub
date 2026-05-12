@@ -185,11 +185,11 @@ export default function LoginPage() {
         }}>
           💡 Demo:
           <strong style={{color:'var(--text2)'}}>
-            admin@interacthub.io
+            admin@test.com
           </strong>
           /
           <strong style={{color:'var(--text2)'}}>
-            admin123
+            Admin123!
           </strong>
         </div>
 
