@@ -25,7 +25,6 @@ public static class TestDbHelper
             .Options;
         var db = new AppDbContext(options);
 
-        // Seed roles
         if (!db.Roles.Any())
         {
             db.Roles.AddRange(
@@ -58,7 +57,6 @@ public static class UserManagerHelper
         var hasher = new PasswordHasher<ApplicationUser>();
         var validators = new List<IUserValidator<ApplicationUser>> { new UserValidator<ApplicationUser>() };
         var pwValidators = new List<IPasswordValidator<ApplicationUser>> { new PasswordValidator<ApplicationUser>() };
-
         var logger = NullLogger<UserManager<ApplicationUser>>.Instance;
 
         return new UserManager<ApplicationUser>(
@@ -223,7 +221,15 @@ public class FriendServiceTests
         Setup(string dbName)
     {
         var db = TestDbHelper.CreateDb(dbName);
-        var service = new FriendService(db);
+
+        var mockNotification = new Mock<INotificationService>();
+        mockNotification
+            .Setup(x => x.CreateAndSendAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(),
+                It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = new FriendService(db, mockNotification.Object);
 
         var userA = new ApplicationUser
         {

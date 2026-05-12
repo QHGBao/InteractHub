@@ -194,14 +194,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
                 Id = new Guid("11111111-1111-1111-1111-111111111111"),
                 Name = "User",
                 NormalizedName = "USER",
-                ConcurrencyStamp = "1"   // ← thêm dòng này
+                ConcurrencyStamp = "1" 
             },
             new IdentityRole<Guid>
             {
                 Id = new Guid("22222222-2222-2222-2222-222222222222"),
                 Name = "Admin",
                 NormalizedName = "ADMIN",
-                ConcurrencyStamp = "2"   // ← thêm dòng này
+                ConcurrencyStamp = "2"
             }
         );
     }
