@@ -13,12 +13,6 @@ public class SearchService : ISearchService
         _context = context;
     }
 
-    // ─────────────────────────────────────────────
-    // SEARCH USERS
-    // Trả về:
-    //   - IsSelf = true nếu là chính mình
-    //   - FriendshipStatus: null / "Pending" / "Accepted"
-    // ─────────────────────────────────────────────
     public async Task<IEnumerable<UserSearchResultDto>> SearchUsersAsync(string query, Guid currentUserId)
     {
         var q = query.Trim().ToLower();
@@ -26,7 +20,7 @@ public class SearchService : ISearchService
         var users = await _context.Users
             .Where(u => u.IsActive &&
                 (u.DisplayName.ToLower().Contains(q) ||
-                 (u.UserName != null && u.UserName.ToLower().Contains(q)) ||
+                 (u.UserName != null && u.UserName.ToLower().StartsWith(q)) ||
                  (u.Bio      != null && u.Bio.ToLower().Contains(q))))
             .OrderBy(u => u.DisplayName)
             .Take(30)
@@ -63,9 +57,7 @@ public class SearchService : ISearchService
         });
     }
 
-    // ─────────────────────────────────────────────
-    // SEARCH POSTS — theo nội dung
-    // ─────────────────────────────────────────────
+
     public async Task<IEnumerable<PostSearchResultDto>> SearchPostsAsync(string query)
     {
         var q = query.Trim().ToLower();
@@ -96,7 +88,7 @@ public class SearchService : ISearchService
 
     private static string GetTimeAgo(DateTime date)
     {
-        var span = DateTime.UtcNow - date;
+        var span = DateTime.UtcNow.AddHours(7) - date;
         if (span.TotalMinutes < 1)  return "Vừa xong";
         if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} phút trước";
         if (span.TotalHours   < 24) return $"{(int)span.TotalHours} giờ trước";

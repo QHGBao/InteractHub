@@ -27,20 +27,6 @@ public class HashtagsController : ControllerBase
         return Ok(new { success = true, data });
     }
 
-    [HttpGet("followed")]
-    public async Task<IActionResult> GetFollowed()
-    {
-        var data = await _hashtagService.GetFollowedAsync(GetUserId());
-        return Ok(new { success = true, data });
-    }
-
-    [HttpPost("{id}/follow")]
-    public async Task<IActionResult> ToggleFollow(Guid id)
-    {
-        var result = await _hashtagService.ToggleFollowAsync(GetUserId(), id);
-        return Ok(new { success = true, data = result });
-    }
-
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string q)
     {
